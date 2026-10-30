@@ -78,13 +78,6 @@ tree and input on `127.0.0.1:7600/mcp`.
 
 [docs/architecture.md](docs/architecture.md) explains how the code is organized.
 
-## Releases
-
-`.github/workflows/release.yml` runs whenever a GitHub release is published. It runs the tests,
-builds a Windows setup program and MSIX, a macOS DMG, Linux `.deb` and `.rpm` packages, and an
-Android APK and AAB, then attaches them all to the release. The packages are signed when the
-repository has the signing secrets listed in the workflow. The workflow is generated from the
-`[ci]` section of `giode.toml`. After changing that section, run `giode ci -f` to regenerate it.
 
 ## License
 
