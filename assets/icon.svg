@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#231A5C"/>
+      <stop offset="0.55" stop-color="#121433"/>
+      <stop offset="1" stop-color="#081624"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.22" r="0.75">
+      <stop offset="0" stop-color="#8B6CFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#8B6CFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.85" cy="0.85" r="0.6">
+      <stop offset="0" stop-color="#22D3EE" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B9A6FF"/>
+      <stop offset="0.45" stop-color="#7C5CFF"/>
+      <stop offset="1" stop-color="#4F7BFF"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4F7BFF"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle tile -->
+  <rect x="72" y="72" width="880" height="880" rx="208" fill="url(#bg)"/>
+  <rect x="72" y="72" width="880" height="880" rx="208" fill="url(#glow)"/>
+  <rect x="72" y="72" width="880" height="880" rx="208" fill="url(#glow2)"/>
+  <rect x="74" y="74" width="876" height="876" rx="206" fill="none" stroke="url(#rim)" stroke-width="4"/>
+
+  <g transform="translate(-58 0)">
+  <!-- Play triangle, split into the layers it's encoded into -->
+  <path d="M286 300 Q262 286 262 314 L262 418 L560 418 Z" fill="url(#mark)"/>
+  <path d="M262 452 L262 572 L626 572 L668 512 L626 452 Z" fill="url(#mark)"/>
+  <path d="M262 606 L262 710 Q262 738 286 724 L560 606 Z" fill="url(#mark)"/>
+
+  <!-- Encoded stream leaving the tip -->
+  <rect x="598" y="384" width="212" height="34" rx="17" fill="url(#bar)" opacity="0.95"/>
+  <rect x="700" y="495" width="170" height="34" rx="17" fill="url(#bar)"/>
+  <rect x="598" y="606" width="250" height="34" rx="17" fill="url(#bar)" opacity="0.95"/>
+  <circle cx="886" cy="401" r="17" fill="#22D3EE" opacity="0.55"/>
+  <circle cx="902" cy="623" r="12" fill="#22D3EE" opacity="0.4"/>
+  </g>
+</svg>

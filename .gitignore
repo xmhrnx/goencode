@@ -1,0 +1,10 @@
+/dist/
+*.keystore
+*.jks
+
+# Android ffmpeg build (android/build-ffmpeg.sh)
+/android/.ffmpeg-build/
+/android/ffmpeg.aar
+
+# Windows resources giode build generates
+*.syso
