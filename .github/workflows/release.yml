@@ -29,7 +29,7 @@ jobs:
           sudo apt-get install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libffi-dev libxcursor-dev libvulkan-dev
       - name: Project setup (giode.toml ci.setup)
         run: |
-          bash android/ci-setup.sh
+          bash ci/version.sh && bash android/ci-setup.sh
       - name: Test (giode.toml ci.test)
         run: |
           go vet ./... && go test -short ./...
@@ -55,7 +55,7 @@ jobs:
           go install github.com/mehran9675/giode-cli/cmd/giode@latest
       - name: Project setup (giode.toml ci.setup)
         run: |
-          bash android/ci-setup.sh
+          bash ci/version.sh && bash android/ci-setup.sh
       - name: Signing keys
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -100,6 +100,9 @@ jobs:
         with:
           go-version: stable
       - run: go install github.com/mehran9675/giode-cli/cmd/giode@latest
+      - name: Project setup (giode.toml ci.setup)
+        run: |
+          bash ci/version.sh
       - name: Signing certificate
         if: env.MACOS_CERT_BASE64 != ''
         env:

@@ -4,7 +4,7 @@
 [app]
 name = "GoEncode"
 id = "com.goencode.app"            # reverse-DNS, unique to your app; stores never let it change
-version = "0.1.0"
+version = "1.0.0"                # giode takes major.minor.patch; CI trims a v1.0.0.0 tag to this (ci/version.sh)
 build = 1                    # raise for every store upload (giode bump)
 icon = "assets/icon.png"
 package = "."
@@ -19,6 +19,11 @@ keep_alive = true            # keeps a batch encoding while the app is in the ba
 # ffmpeg and ffprobe for each ABI, built by android/build-ffmpeg.sh (run it
 # before giode build android); see docs/ffmpeg.md.
 libraries = ["android/ffmpeg.aar"]
+# Adaptive icon layers, from assets/android/*.svg: the tile alone would
+# leave the launcher's white around it.
+icon_foreground = "assets/android/icon-foreground.png"
+icon_background = "assets/android/icon-background.png"
+icon_monochrome = "assets/android/icon-foreground.png"
 # keystore = "release.keystore"   # created by giode keystore; signs giode build -release
 
 [ios]
@@ -67,7 +72,10 @@ license = "Apache-2.0"       # SPDX, for .deb, .rpm and AppStream
 trigger = "release"
 test = "go vet ./... && go test -short ./..."
 
-# Installs what the Android packages need (nasm, bundletool) and builds ffmpeg
-# for Android before they're packaged; the script skips the test job.
+# ci/version.sh trims a release tag to the major.minor.patch giode takes
+# (v1.0.0.0 builds as 1.0.0). android/ci-setup.sh installs what the Android
+# packages need (nasm, bundletool) and builds ffmpeg for Android; it skips
+# the test job.
 [ci.setup]
-linux = "bash android/ci-setup.sh"
+linux = "bash ci/version.sh && bash android/ci-setup.sh"
+macos = "bash ci/version.sh"
