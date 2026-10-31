@@ -60,7 +60,9 @@ func (e *Env) AddFiles() {
 			}
 			return
 		}
-		files, err := e.App.PickFiles(e.Ctx, giode.PickOptions{Types: pickerTypes(), Multiple: true})
+		// Android's picker takes one file at a time: gioui.org/x/explorer
+		// has no multiple choice there.
+		files, err := e.App.PickFiles(e.Ctx, giode.PickOptions{Types: pickerTypes(), Multiple: !mobile()})
 		if err != nil {
 			if !errors.Is(err, giode.ErrCanceled) {
 				e.App.Post(func() { e.Store.Toast(store.ToastError, "Couldn't open the picker: "+err.Error()) })
@@ -119,9 +121,15 @@ func (e *Env) Open(path string) {
 	}
 }
 
+// pickerTypes limits the picker to media on desktops. Phones get every
+// file: their picker filters by MIME type, which giode derives from
+// extensions with a table Android lacks, so a filter there hides
+// everything. ffprobe turns down what isn't media.
 func pickerTypes() []string {
-	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
-		return []string{"video/*", "audio/*"}
+	if mobile() {
+		return nil
 	}
 	return jobs.MediaExtensions
 }
+
+func mobile() bool { return runtime.GOOS == "android" || runtime.GOOS == "ios" }
