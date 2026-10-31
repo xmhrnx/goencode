@@ -1,3 +1,5 @@
+//go:build !android
+
 package platform
 
 import (
@@ -10,8 +12,8 @@ import (
 // the share sheet instead.
 var ErrNoOpener = errors.New("opening files isn't supported here")
 
-// CanOpen reports whether Open works on this platform.
-func CanOpen() bool {
+// CanOpen reports whether Open works for the file at path.
+func CanOpen(path string) bool {
 	switch runtime.GOOS {
 	case "windows", "darwin", "linux", "freebsd":
 		return true
@@ -39,3 +41,11 @@ func Open(path string) error {
 	go cmd.Wait()
 	return nil
 }
+
+// Share opens the share sheet for a file in shared storage. ok is false
+// when it can't, and the app's own share (which copies the file) is used.
+func Share(path string) (ok bool, err error) { return false, nil }
+
+// PublicDir is where results go on Android; elsewhere results go next to
+// their sources, and it's "".
+func PublicDir() string { return "" }

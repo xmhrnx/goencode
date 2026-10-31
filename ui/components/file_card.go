@@ -23,12 +23,13 @@ type FileCardProps struct {
 	Plan     *settings.Plan
 	Selected bool
 	Compact  bool
-	CanOpen  bool
+	CanOpen  bool // the result plays in another app
+	CanShow  bool // the result can be shown in a file manager; otherwise it's shared
 	OnSelect func()
 	OnRemove func()
 	OnCancel func()
 	OnOpen   func()
-	OnReveal func() // shows the result in the file manager, or shares it on phones
+	OnReveal func() // shows the result in the file manager, or shares it
 }
 
 type fileCard struct {
@@ -144,11 +145,11 @@ func (c *fileCard) detail() []giode.Element {
 		if p.CanOpen {
 			row = append(row, Button(fmt.Sprint("open", it.ID), ButtonSpec{Icon: "play", Kind: Ghost, Small: true, Tooltip: "Play the result", OnClick: p.OnOpen}))
 		}
-		revealTip := "Show in folder"
-		if !p.CanOpen {
-			revealTip = "Share or save"
+		revealTip, revealIcon := "Show in folder", "folder"
+		if !p.CanShow {
+			revealTip, revealIcon = "Share or save", "share"
 		}
-		row = append(row, Button(fmt.Sprint("reveal", it.ID), ButtonSpec{Icon: map[bool]string{true: "folder", false: "share"}[p.CanOpen], Kind: Ghost, Small: true, Tooltip: revealTip, OnClick: p.OnReveal}))
+		row = append(row, Button(fmt.Sprint("reveal", it.ID), ButtonSpec{Icon: revealIcon, Kind: Ghost, Small: true, Tooltip: revealTip, OnClick: p.OnReveal}))
 		out = append(out, giode.Row(giode.Styles{Gap: 2, Align: giode.AlignCenter, Width: -1, Wrap: giode.WrapNoWrap}, row...))
 	case jobs.Failed, jobs.Invalid:
 		out = append(out, giode.Text(it.Err, theme.Caption.With(giode.Styles{Color: "theme.danger", MaxLines: 3})))

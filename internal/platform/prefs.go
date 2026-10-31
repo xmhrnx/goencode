@@ -76,8 +76,14 @@ func SavePrefs(p Prefs) error {
 func ImportDir() string { return filepath.Join(DataDir(), "imports") }
 
 // OutputDir holds finished files on platforms where the source folder
-// isn't writable.
-func OutputDir() string { return filepath.Join(DataDir(), "output") }
+// isn't writable: shared storage on Android when it can be written,
+// otherwise the app's own folder.
+func OutputDir() string {
+	if dir := PublicDir(); dir != "" {
+		return dir
+	}
+	return filepath.Join(DataDir(), "output")
+}
 
 // PreviewDir holds preview encodes.
 func PreviewDir() string { return filepath.Join(os.TempDir(), "goencode-preview") }

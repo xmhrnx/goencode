@@ -6,6 +6,7 @@ import (
 	"github.com/mehran9675/giode"
 
 	"github.com/xmhrnx/goencode/internal/catalog"
+	"github.com/xmhrnx/goencode/internal/platform"
 	"github.com/xmhrnx/goencode/internal/settings"
 	"github.com/xmhrnx/goencode/ui/components"
 	"github.com/xmhrnx/goencode/ui/theme"
@@ -35,7 +36,11 @@ func OutputSettings(env *Env) giode.Element {
 					giode.Text(where, giode.Styles{FontSize: 12, Color: "theme.text", MaxLines: 1})),
 				giode.Row(giode.Styles{Gap: 4, Wrap: giode.WrapNoWrap}, buttons...))))
 	} else {
-		rows = append(rows, components.Notice("info", "share", "Finished files are kept in the app; share or save them from each file's card."))
+		msg := "Finished files are kept in the app; share or save them from each file's card."
+		if dir := platform.PublicDir(); dir != "" {
+			msg = "Finished files go to Download/GoEncode, where the Files app shows them. Play or share them from each file's card."
+		}
+		rows = append(rows, components.Notice("info", "share", msg))
 	}
 
 	example := "movie" + st.Output.Suffix + "." + c.Ext

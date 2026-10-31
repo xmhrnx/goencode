@@ -6,8 +6,6 @@ package views
 import (
 	"context"
 	"errors"
-	"mime"
-	"path/filepath"
 	"runtime"
 
 	"github.com/mehran9675/giode"
@@ -104,21 +102,27 @@ func (e *Env) PickOutputDir() {
 // Reveal shows a result in the file manager, or shares it on phones.
 func (e *Env) Reveal(path string) {
 	go func() {
-		mt := mime.TypeByExtension(filepath.Ext(path))
-		if mt == "" {
-			mt = "application/octet-stream"
+		// A file in Android's shared storage is shared as it is; others
+		// are copied out by giode first.
+		if ok, err := platform.Share(path); ok {
+			if err != nil {
+				e.App.Post(func() { e.Store.Toast(store.ToastError, "Couldn't share: "+err.Error()) })
+			}
+			return
 		}
-		if err := e.App.Share(e.Ctx, giode.ShareFile{Path: path, MIME: mt}); err != nil {
+		if err := e.App.Share(e.Ctx, giode.ShareFile{Path: path, MIME: platform.MIMEType(path)}); err != nil {
 			e.App.Post(func() { e.Store.Toast(store.ToastError, "Couldn't share: "+err.Error()) })
 		}
 	}()
 }
 
-// Open plays a result in the default app.
+// Open plays a result in the default app, or shares it when it can't.
 func (e *Env) Open(path string) {
-	if err := platform.Open(path); err != nil {
-		e.Reveal(path)
-	}
+	go func() {
+		if err := platform.Open(path); err != nil {
+			e.Reveal(path)
+		}
+	}()
 }
 
 // pickerTypes limits the picker to media on desktops. Phones get every

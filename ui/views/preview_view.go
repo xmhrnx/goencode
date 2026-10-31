@@ -69,7 +69,7 @@ func (p *PreviewPanel) View() giode.Element {
 				LeftLabel: "0:00", RightLabel: ffmpeg.FormatDuration(dur)},
 				func(v float64) { p.at = v })),
 		components.OptionRow(components.InfoLabel("pv-len", "Length", "How many seconds to encode. Longer clips predict the full size more accurately."),
-			giode.Box(giode.Styles{Width: 210}, components.Segmented("pv-len", []string{"5 s", "10 s", "30 s", "60 s"}, []string{"5", "10", "30", "60"}, nil,
+			giode.Box(giode.Styles{Width: -1}, components.Segmented("pv-len", []string{"5 s", "10 s", "30 s", "60 s"}, []string{"5", "10", "30", "60"}, nil,
 				strconv.Itoa(p.length), func(v string) { p.length, _ = strconv.Atoi(v) }))),
 	)
 
@@ -114,7 +114,7 @@ func (p *PreviewPanel) results(sourceSize int64) []giode.Element {
 	}
 	out := pv.Output
 	actions := []giode.Element{}
-	if platform.CanOpen() {
+	if platform.CanOpen(out) {
 		actions = append(actions, components.Button("pv-open", components.ButtonSpec{Label: "Play clip", Icon: "play", Kind: components.Secondary, Small: true,
 			OnClick: func() { env.Open(out) }}))
 	}
