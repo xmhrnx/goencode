@@ -47,6 +47,11 @@ arch = "amd64"
 # desktop_shortcut = true
 # license = "assets/license.txt"
 
+[windows.msix]
+# The signing certificate's subject; a certificate that signs the MSIX
+# must have this exact subject (or use the Partner Center publisher ID).
+publisher = "CN=xmhrnx"
+
 [windows.signing]
 # certificate = "codesign.pfx"   # created by giode cert (testing) or bought; password in $GIODE_WINDOWS_CERT_PASS
 # timestamp = "http://timestamp.digicert.com"

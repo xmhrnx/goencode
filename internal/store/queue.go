@@ -180,6 +180,10 @@ func (s *Store) finishBatch() {
 			failed++
 		}
 	}
+	if done+failed == 0 {
+		s.Toast(ToastInfo, "Encoding stopped")
+		return
+	}
 	msg := plural(done, "file") + " encoded"
 	if failed > 0 {
 		msg += fmt.Sprintf(", %d failed", failed)

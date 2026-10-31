@@ -81,6 +81,7 @@ func isFile(p string) bool {
 }
 
 func withVersion(ctx context.Context, b Binaries) (Binaries, error) {
+	b.FFmpeg, b.FFprobe = realProgram(b.FFmpeg), realProgram(b.FFprobe)
 	out, err := command(ctx, b.FFmpeg, "-hide_banner", "-version").Output()
 	if err != nil {
 		return Binaries{}, err
