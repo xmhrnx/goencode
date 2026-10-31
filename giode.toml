@@ -67,7 +67,7 @@ license = "Apache-2.0"       # SPDX, for .deb, .rpm and AppStream
 trigger = "release"
 test = "go vet ./... && go test -short ./..."
 
-# Builds ffmpeg for Android with the NDK before the APK is packaged; the script
-# skips itself in the test job.
+# Installs what the Android packages need (nasm, bundletool) and builds ffmpeg
+# for Android before they're packaged; the script skips the test job.
 [ci.setup]
-linux = "sudo apt-get install -y nasm && bash android/build-ffmpeg.sh"
+linux = "bash android/ci-setup.sh"
