@@ -75,11 +75,11 @@ func (p *PrefsPanel) View() giode.Element {
 		components.SectionCard("gauge", "Performance", "", nil,
 			components.OptionRow(components.InfoLabel("pref-jobs", "Files at once",
 				"How many files encode in parallel. Most encoders already use every CPU core, so 1 is usually fastest; raise it for many small files or when a GPU encoder leaves the CPU idle."),
-				giode.Box(giode.Styles{Width: 200}, components.Segmented("pref-jobs", []string{"1", "2", "3", "4"}, []string{"1", "2", "3", "4"}, nil,
+				giode.Box(giode.Styles{Width: -1}, components.Segmented("pref-jobs", []string{"1", "2", "3", "4"}, []string{"1", "2", "3", "4"}, nil,
 					strconv.Itoa(max(1, s.Prefs.Concurrency)), func(v string) { set(func(x *platform.Prefs) { x.Concurrency, _ = strconv.Atoi(v) }) })))),
 		components.SectionCard("sun", "Appearance & alerts", "", nil,
 			components.OptionRow(giode.Text("Theme", theme.Label),
-				giode.Box(giode.Styles{Width: 210}, components.Segmented("pref-theme", []string{"System", "Dark", "Light"}, []string{"system", "dark", "light"}, nil,
+				giode.Box(giode.Styles{Width: -1}, components.Segmented("pref-theme", []string{"System", "Dark", "Light"}, []string{"system", "dark", "light"}, nil,
 					themeOrSystem(s.Prefs.Theme), func(v string) {
 						set(func(x *platform.Prefs) { x.Theme = v })
 						theme.Apply(v)

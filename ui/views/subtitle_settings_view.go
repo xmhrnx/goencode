@@ -30,7 +30,7 @@ func SubtitleSettings(env *Env) giode.Element {
 	var rows []giode.Element
 	if len(values) > 1 {
 		rows = append(rows, components.OptionRow(components.InfoLabel("s-mode", "Subtitles", catalog.HelpSubtitleMode()),
-			giode.Box(giode.Styles{Width: 210}, components.Segmented("s-mode/"+st.Container+boolKey(canBurn), labels, values, nil, string(st.Subtitles.Mode),
+			giode.Box(giode.Styles{Width: -1}, components.Segmented("s-mode/"+st.Container+boolKey(canBurn), labels, values, nil, string(st.Subtitles.Mode),
 				func(v string) { s.Update(func(x *settings.Settings) { x.Subtitles.Mode = settings.SubtitleMode(v) }) }))))
 	}
 

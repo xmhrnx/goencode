@@ -64,7 +64,7 @@ func trackRows(env *Env, prefix string, rule settings.TrackRule, langs string, o
 	}
 	rows := []giode.Element{
 		components.OptionRow(components.InfoLabel(prefix+"-tracks", "Tracks", catalog.HelpTrackSelection(kind)),
-			giode.Box(giode.Styles{Width: 210}, components.Segmented(prefix+"-tracks", []string{"All", "First", "Language"},
+			giode.Box(giode.Styles{Width: -1}, components.Segmented(prefix+"-tracks", []string{"All", "First", "Language"},
 				[]string{"all", "first", "languages"}, nil, string(rule), func(v string) { onRule(settings.TrackRule(v)) }))),
 	}
 	if rule == settings.TracksLanguages {
