@@ -33,6 +33,11 @@ func PublicDir() string {
 		if root == "" {
 			root = "/storage/emulated/0"
 		}
+		// EXTERNAL_STORAGE is often /sdcard, a link; MediaStore records
+		// the real path, which mediaID looks files up by.
+		if real, err := filepath.EvalSymlinks(root); err == nil {
+			root = real
+		}
 		dir := filepath.Join(root, "Download", "GoEncode")
 		if os.MkdirAll(dir, 0o755) != nil {
 			return
@@ -147,8 +152,10 @@ func startIntent(path string, share bool) (err error) {
 }
 
 // contentURI finds the MediaStore item for a file in shared storage,
-// asking the media scanner for it when it isn't indexed yet. Videos and
-// audio get their media collection's URI, which players handle best.
+// asking the media scanner for it when it isn't indexed yet. The link is
+// to the Downloads collection, like giode's own share: it's the one this
+// app may grant other apps; the video collection's link opened a sheet
+// with no apps in it.
 func contentURI(env jni.Env, ctx jni.Object, path, mime string) (jni.Object, error) {
 	id, err := mediaID(env, ctx, path)
 	if err != nil {
@@ -173,16 +180,9 @@ func contentURI(env jni.Env, ctx jni.Object, path, mime string) (jni.Object, err
 			return 0, fmt.Errorf("Android hasn't indexed %s yet", filepath.Base(path))
 		}
 	}
-	base := "content://media/external/downloads"
-	switch {
-	case strings.HasPrefix(mime, "video/"):
-		base = "content://media/external/video/media"
-	case strings.HasPrefix(mime, "audio/"):
-		base = "content://media/external/audio/media"
-	}
 	uriCls := jni.FindClass(env, "android/net/Uri")
 	return jni.CallStaticObjectMethod(env, uriCls, jni.GetStaticMethodID(env, uriCls, "parse", "(Ljava/lang/String;)Landroid/net/Uri;"),
-		jni.Value(jni.JavaString(env, base+"/"+strconv.FormatInt(id, 10))))
+		jni.Value(jni.JavaString(env, "content://media/external/downloads/"+strconv.FormatInt(id, 10))))
 }
 
 // mediaID returns the MediaStore ID of the file at path, or -1.

@@ -116,11 +116,15 @@ func (e *Env) Reveal(path string) {
 	}()
 }
 
-// Open plays a result in the default app, or shares it when it can't.
+// Open plays a result in the default app, or shares it where files
+// can't be opened.
 func (e *Env) Open(path string) {
 	go func() {
-		if err := platform.Open(path); err != nil {
+		switch err := platform.Open(path); {
+		case errors.Is(err, platform.ErrNoOpener):
 			e.Reveal(path)
+		case err != nil:
+			e.App.Post(func() { e.Store.Toast(store.ToastError, "Couldn't open: "+err.Error()) })
 		}
 	}()
 }
