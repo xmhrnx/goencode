@@ -43,9 +43,13 @@ type Plan struct {
 // Warnings lists the conversions and drops the user should know about.
 func (p *Plan) Warnings() []string {
 	var w []string
+	count := map[string]int{}
 	add := func(sp StreamPlan) {
 		if sp.Reason != "" && (sp.Action == ActConvert || sp.Action == ActDrop) {
-			w = append(w, sp.Reason)
+			if count[sp.Reason] == 0 {
+				w = append(w, sp.Reason)
+			}
+			count[sp.Reason]++
 		}
 	}
 	if p.Video != nil {
@@ -56,6 +60,12 @@ func (p *Plan) Warnings() []string {
 	}
 	for _, s := range p.Subtitles {
 		add(s)
+	}
+	// A disc's 20 subtitle tracks give one line, not 20.
+	for i, r := range w {
+		if n := count[r]; n > 1 {
+			w[i] = fmt.Sprintf("%s (%d tracks)", r, n)
+		}
 	}
 	return append(w, p.Notes...)
 }

@@ -161,9 +161,11 @@ func child(dir, name string) string {
 
 // Blu-ray
 
-// openBluRay picks the longest playlist whose clips are all present:
-// the film, rather than trailers, menus and extras. Discs that hide the
-// film among decoy playlists of the same length play the first of them.
+// openBluRay picks the playlist with the most distinct video whose clips
+// are all present: the film, rather than trailers, menus and extras. A
+// clip played over and over (a menu's background, looped for hours)
+// counts once. Discs that hide the film among decoy playlists of the same
+// length play the first of them.
 func openBluRay(bdmv string) (*Title, error) {
 	plDir, streamDir := child(bdmv, "PLAYLIST"), child(bdmv, "STREAM")
 	ents, err := os.ReadDir(plDir)
@@ -172,6 +174,7 @@ func openBluRay(bdmv string) (*Title, error) {
 	}
 	sort.Slice(ents, func(i, j int) bool { return ents[i].Name() < ents[j].Name() })
 	var best *Title
+	var bestDistinct time.Duration
 	for _, e := range ents {
 		if !strings.EqualFold(filepath.Ext(e.Name()), ".mpls") {
 			continue
@@ -199,8 +202,9 @@ func openBluRay(bdmv string) (*Title, error) {
 		if files == nil {
 			continue
 		}
-		if best == nil || pl.Duration > best.Duration {
+		if best == nil || pl.Distinct > bestDistinct {
 			best = &Title{Kind: BluRay, Files: files, Duration: pl.Duration, Source: e.Name(), Languages: pl.Languages}
+			bestDistinct = pl.Distinct
 		}
 	}
 	if best == nil {
@@ -214,6 +218,7 @@ func openBluRay(bdmv string) (*Title, error) {
 type Playlist struct {
 	Clips     []string // clip names, "00010", in order
 	Duration  time.Duration
+	Distinct  time.Duration  // the running time with each clip counted once
 	Languages map[int]string // by PID, from the first play item
 }
 
@@ -230,25 +235,32 @@ func ParseMPLS(b []byte) (Playlist, error) {
 	}
 	n := int(binary.BigEndian.Uint16(b[start+6:]))
 	p := start + 10
-	var ticks uint64 // 45 kHz
+	var ticks, distinct uint64 // 45 kHz
+	seen := map[string]bool{}
 	for i := 0; i < n; i++ {
 		if p+22 > len(b) {
 			return pl, fmt.Errorf("playlist is cut short")
 		}
 		size := int(binary.BigEndian.Uint16(b[p:]))
 		end := p + 2 + size
-		pl.Clips = append(pl.Clips, string(b[p+2:p+7]))
+		clip := string(b[p+2 : p+7])
+		pl.Clips = append(pl.Clips, clip)
 		in := binary.BigEndian.Uint32(b[p+14:])
 		out := binary.BigEndian.Uint32(b[p+18:])
 		if out > in {
 			ticks += uint64(out - in)
+			if !seen[clip] {
+				distinct += uint64(out - in)
+			}
 		}
+		seen[clip] = true
 		if i == 0 && end <= len(b) {
 			pl.Languages = stnLanguages(b[:end], p)
 		}
 		p = end
 	}
 	pl.Duration = time.Duration(ticks) * time.Second / 45000
+	pl.Distinct = time.Duration(distinct) * time.Second / 45000
 	return pl, nil
 }
 
