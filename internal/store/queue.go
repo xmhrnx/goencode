@@ -129,7 +129,7 @@ func (s *Store) run(it *jobs.Item) {
 	}
 	out := settings.OutputPath(name, s.Settings, fallback, s.taken)
 	input, inArgs := it.Source()
-	args, _, dur, err := settings.Args(settings.Job{Input: input, InputArgs: inArgs, Info: it.Info, Output: out}, s.Settings, s.Caps)
+	args, _, dur, err := settings.Args(settings.Job{Input: input, InputArgs: inArgs, Picks: it.Picks, Info: it.Info, Output: out}, s.Settings, s.Caps)
 	if err != nil {
 		it.Status, it.Err = jobs.Failed, err.Error()
 		return

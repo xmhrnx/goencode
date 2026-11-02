@@ -108,8 +108,11 @@ func (s *Store) probe(it *jobs.Item) {
 		ctx, cancel := context.WithTimeout(s.ctx, 90*time.Second)
 		defer cancel()
 		info, err := ffmpeg.Probe(ctx, bins, input, inArgs...)
-		if err == nil && title != nil && title.Duration > 0 {
-			info.Duration = title.Duration
+		if err == nil && title != nil {
+			if title.Duration > 0 {
+				info.Duration = title.Duration
+			}
+			discLanguages(ctx, bins, title, info)
 		}
 		s.host.Post(func() {
 			if title != nil {
@@ -135,6 +138,32 @@ func (s *Store) probe(it *jobs.Item) {
 			}
 		}
 	}()
+}
+
+// discLanguages labels a Blu-ray's tracks with the languages in its
+// playlist, matched by PID. The concat demuxer that joins several clips
+// hides the PIDs, so they're read from the first clip, whose streams
+// come in the same order.
+func discLanguages(ctx context.Context, bins ffmpeg.Binaries, title *disc.Title, info *ffmpeg.MediaInfo) {
+	if len(title.Languages) == 0 {
+		return
+	}
+	pids := map[int]int{}
+	for _, st := range info.Streams {
+		pids[st.Index] = st.PID
+	}
+	if len(title.Files) > 1 {
+		if first, err := ffmpeg.Probe(ctx, bins, title.Files[0]); err == nil {
+			for _, st := range first.Streams {
+				pids[st.Index] = st.PID
+			}
+		}
+	}
+	for i, st := range info.Streams {
+		if lang := title.Languages[pids[st.Index]]; lang != "" && st.Language == "" {
+			info.Streams[i].Language = lang
+		}
+	}
 }
 
 // Item finds an item by ID.
@@ -214,7 +243,40 @@ func (s *Store) Plan(it *jobs.Item) *settings.Plan {
 	if it.Info == nil || s.Caps == nil {
 		return nil
 	}
-	return settings.MakePlan(it.Info, s.Settings, s.Caps)
+	return settings.MakePlan(it.Info, s.Settings, s.Caps, it.Picks)
+}
+
+// PickTrack keeps or leaves out one of a file's tracks, starting from the
+// tracks the recipe's rule picks.
+func (s *Store) PickTrack(it *jobs.Item, kind ffmpeg.MediaKind, index int, keep bool) {
+	if it.Info == nil {
+		return
+	}
+	list := it.Picks.Of(kind)
+	if list == nil {
+		list = []int{}
+		for _, st := range settings.RuleTracks(kind, it.Info.StreamsOf(kind), s.Settings) {
+			list = append(list, st.Index)
+		}
+	}
+	var out []int
+	for _, i := range list {
+		if i != index {
+			out = append(out, i)
+		}
+	}
+	if keep {
+		out = append(out, index)
+	}
+	if out == nil {
+		out = []int{}
+	}
+	it.Picks = it.Picks.With(kind, out)
+}
+
+// ResetTracks makes a file follow the recipe's track rule again.
+func (s *Store) ResetTracks(it *jobs.Item, kind ffmpeg.MediaKind) {
+	it.Picks = it.Picks.With(kind, nil)
 }
 
 // Totals sums the batch for the header.

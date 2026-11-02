@@ -35,7 +35,10 @@ in the batch: video, audio, subtitles, chapters, metadata and output naming.
 - **Batches.** Drag and drop files or folders, encode up to 4 files at once, follow per-file and
   overall progress, cancel or retry files, and get a notification when the batch finishes.
 - **Blu-ray and DVD folders.** A disc, or a copy of one, is added as one file: its main title,
-  the longest Blu-ray playlist or the largest DVD title set, with its parts joined in order.
+  the longest Blu-ray playlist or the largest DVD title set, with its parts joined in order. Blu-ray
+  tracks get their languages from the disc's playlist.
+- **Tracks per file.** Keep all audio and subtitle tracks, the first, or those in chosen languages,
+  or switch a file's tracks on and off one by one.
 
 ## Getting ffmpeg
 

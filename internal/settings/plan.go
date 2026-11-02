@@ -102,7 +102,7 @@ func codecLabel(id string) string {
 }
 
 // MakePlan decides what happens to every stream of a file.
-func MakePlan(info *ffmpeg.MediaInfo, s Settings, caps *ffmpeg.Capabilities) *Plan {
+func MakePlan(info *ffmpeg.MediaInfo, s Settings, caps *ffmpeg.Capabilities, pk Picks) *Plan {
 	c := catalog.ContainerByID(s.Container)
 	p := &Plan{Container: c}
 
@@ -130,7 +130,7 @@ func MakePlan(info *ffmpeg.MediaInfo, s Settings, caps *ffmpeg.Capabilities) *Pl
 
 	// Audio.
 	if c.Holds(ffmpeg.KindAudio) && s.Audio.Mode != ModeDrop {
-		for _, a := range selectTracks(info.StreamsOf(ffmpeg.KindAudio), s.Audio.Tracks, s.Audio.Languages) {
+		for _, a := range pk.apply(ffmpeg.KindAudio, info.StreamsOf(ffmpeg.KindAudio), s) {
 			sp := StreamPlan{Stream: a}
 			needsEncode := s.Audio.Mode == ModeEncode || s.Audio.Loudnorm
 			switch {
@@ -160,7 +160,7 @@ func MakePlan(info *ffmpeg.MediaInfo, s Settings, caps *ffmpeg.Capabilities) *Pl
 		}
 	case SubsKeep:
 		textTargets := TextSubtitleCodecs(caps, c)
-		selected := selectTracks(subs, s.Subtitles.Tracks, s.Subtitles.Languages)
+		selected := pk.apply(ffmpeg.KindSubtitle, subs, s)
 		if len(selected) > 0 && !c.Holds(ffmpeg.KindSubtitle) {
 			p.Notes = append(p.Notes, fmt.Sprintf("%s can't store subtitles; %d track(s) left out", c.Label, len(selected)))
 			break
@@ -195,6 +195,58 @@ func MakePlan(info *ffmpeg.MediaInfo, s Settings, caps *ffmpeg.Capabilities) *Pl
 		p.Notes = append(p.Notes, c.Label+" can't store chapters")
 	}
 	return p
+}
+
+// Picks are the tracks chosen by hand for one file, by stream index. A
+// nil list follows the recipe's track rule.
+type Picks struct {
+	Audio     []int
+	Subtitles []int
+}
+
+// Of returns the hand-picked tracks of a kind, or nil.
+func (pk Picks) Of(kind ffmpeg.MediaKind) []int {
+	if kind == ffmpeg.KindAudio {
+		return pk.Audio
+	}
+	return pk.Subtitles
+}
+
+// With returns the picks with a kind's list replaced.
+func (pk Picks) With(kind ffmpeg.MediaKind, list []int) Picks {
+	if kind == ffmpeg.KindAudio {
+		pk.Audio = list
+	} else {
+		pk.Subtitles = list
+	}
+	return pk
+}
+
+// apply returns the streams of a kind the file keeps: the hand-picked
+// ones, or those the recipe's rule picks.
+func (pk Picks) apply(kind ffmpeg.MediaKind, streams []ffmpeg.Stream, s Settings) []ffmpeg.Stream {
+	list := pk.Of(kind)
+	if list == nil {
+		return RuleTracks(kind, streams, s)
+	}
+	var out []ffmpeg.Stream
+	for _, st := range streams {
+		for _, i := range list {
+			if st.Index == i {
+				out = append(out, st)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// RuleTracks returns the streams of a kind the recipe's track rule keeps.
+func RuleTracks(kind ffmpeg.MediaKind, streams []ffmpeg.Stream, s Settings) []ffmpeg.Stream {
+	if kind == ffmpeg.KindAudio {
+		return selectTracks(streams, s.Audio.Tracks, s.Audio.Languages)
+	}
+	return selectTracks(streams, s.Subtitles.Tracks, s.Subtitles.Languages)
 }
 
 // selectTracks applies a track rule.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/xmhrnx/goencode/internal/disc"
 	"github.com/xmhrnx/goencode/internal/ffmpeg"
+	"github.com/xmhrnx/goencode/internal/settings"
 )
 
 // Status is where a file is in its life.
@@ -46,6 +47,7 @@ type Item struct {
 	InputArgs []string
 
 	Info  *ffmpeg.MediaInfo
+	Picks settings.Picks // tracks chosen by hand
 	Thumb image.Image
 
 	Status   Status

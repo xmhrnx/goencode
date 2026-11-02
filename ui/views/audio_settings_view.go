@@ -50,6 +50,13 @@ func AudioSettings(env *Env) giode.Element {
 	}
 
 	cards := []giode.Element{components.SectionCard("music", "Audio", "Tracks, codec and sound", nil, rows...)}
+	if st.Audio.Mode != settings.ModeDrop {
+		// The selected file's tracks come first: picking them is what a
+		// file with several is opened here for.
+		if tracks := FileTracks(env, ffmpeg.KindAudio); tracks != nil {
+			cards = append([]giode.Element{tracks}, cards...)
+		}
+	}
 	if st.Audio.Mode == settings.ModeEncode {
 		cards = append(cards, soundCard(env), EncoderOptions(env, ffmpeg.KindAudio))
 	}
@@ -62,8 +69,11 @@ func trackRows(env *Env, prefix string, rule settings.TrackRule, langs string, o
 	if prefix == "s" {
 		kind = "subtitle"
 	}
+	// Stacked, with the full width: "Language" doesn't fit a third of
+	// the narrow column beside the label.
 	rows := []giode.Element{
-		components.OptionRow(components.InfoLabel(prefix+"-tracks", "Tracks", catalog.HelpTrackSelection(kind)),
+		giode.Stack(giode.Styles{Gap: theme.S2, Width: -1},
+			components.InfoLabel(prefix+"-tracks", "Tracks", catalog.HelpTrackSelection(kind)),
 			giode.Box(giode.Styles{Width: -1}, components.Segmented(prefix+"-tracks", []string{"All", "First", "Language"},
 				[]string{"all", "first", "languages"}, nil, string(rule), func(v string) { onRule(settings.TrackRule(v)) }))),
 	}

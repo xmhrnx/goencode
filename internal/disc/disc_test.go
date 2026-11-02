@@ -16,14 +16,56 @@ func mpls(clips []string, secs int) []byte {
 	items := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	binary.BigEndian.PutUint16(items[6:], uint16(len(clips)))
 	for _, c := range clips {
-		it := make([]byte, 2+20)
-		binary.BigEndian.PutUint16(it, 20)
+		it := make([]byte, 34)
 		copy(it[2:], c+"M2TS")
 		binary.BigEndian.PutUint32(it[14:], 900000)
 		binary.BigEndian.PutUint32(it[18:], uint32(900000+secs*45000))
+		it = append(it, stn()...)
+		binary.BigEndian.PutUint16(it, uint16(len(it)-2))
 		items = append(items, it...)
 	}
 	return append(b, items...)
+}
+
+// stn is a stream table with a video, English and French audio, and a
+// German subtitle.
+func stn() []byte {
+	t := make([]byte, 16)
+	t[4], t[5], t[6] = 1, 2, 1
+	entry := func(pid uint16, attr ...byte) {
+		e := make([]byte, 10)
+		e[0], e[1] = 9, 1
+		binary.BigEndian.PutUint16(e[2:], pid)
+		a := make([]byte, 6)
+		a[0] = 5
+		copy(a[1:], attr)
+		t = append(append(t, e...), a...)
+	}
+	entry(0x1011, 0x1B, 0x61)
+	entry(0x1100, 0x83, 0x61, 'e', 'n', 'g')
+	entry(0x1101, 0x81, 0x31, 'f', 'r', 'a')
+	entry(0x1200, 0x90, 'g', 'e', 'r')
+	binary.BigEndian.PutUint16(t, uint16(len(t)-2))
+	return t
+}
+
+func TestMPLSLanguages(t *testing.T) {
+	pl, err := ParseMPLS(mpls([]string{"00010", "00011"}, 60))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[int]string{0x1100: "eng", 0x1101: "fra", 0x1200: "ger"}
+	if len(pl.Languages) != len(want) {
+		t.Fatalf("languages = %v", pl.Languages)
+	}
+	for pid, l := range want {
+		if pl.Languages[pid] != l {
+			t.Errorf("PID %#x = %q, want %q", pid, pl.Languages[pid], l)
+		}
+	}
+	if pl.Duration != 2*time.Minute || len(pl.Clips) != 2 {
+		t.Errorf("playlist = %+v", pl)
+	}
 }
 
 // ifo builds a title set IFO with program chains of the given lengths

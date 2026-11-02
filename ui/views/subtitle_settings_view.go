@@ -7,6 +7,7 @@ import (
 	"github.com/xmhrnx/goencode/internal/ffmpeg"
 	"github.com/xmhrnx/goencode/internal/settings"
 	"github.com/xmhrnx/goencode/ui/components"
+	"github.com/xmhrnx/goencode/ui/theme"
 )
 
 // SubtitleSettings keeps, burns in or drops subtitles, and picks the format
@@ -63,7 +64,13 @@ func SubtitleSettings(env *Env) giode.Element {
 			rows = append(rows, components.Notice("info", "info", c.Label+" can't hold subtitles and the video isn't re-encoded, so they're left out."))
 		}
 	}
-	return components.SectionCard("captions", "Subtitles", "Keep, convert or burn in", nil, rows...)
+	card := components.SectionCard("captions", "Subtitles", "Keep, convert or burn in", nil, rows...)
+	if st.Subtitles.Mode == settings.SubsKeep && canKeep {
+		if tracks := FileTracks(env, ffmpeg.KindSubtitle); tracks != nil {
+			return giode.Stack(giode.Styles{Gap: theme.S3, Width: -1}, card, tracks)
+		}
+	}
+	return card
 }
 
 func boolKey(b bool) string {

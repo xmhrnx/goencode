@@ -24,6 +24,7 @@ type MediaInfo struct {
 // Stream is one stream of a media file.
 type Stream struct {
 	Index       int // absolute index in the file, for -map 0:N
+	PID         int // the MPEG-TS stream ID, 0 for other containers
 	Kind        MediaKind
 	Codec       string // "hevc"
 	CodecLong   string
@@ -100,6 +101,7 @@ type probeJSON struct {
 	} `json:"format"`
 	Streams []struct {
 		Index         int               `json:"index"`
+		ID            string            `json:"id"`
 		CodecType     string            `json:"codec_type"`
 		CodecName     string            `json:"codec_name"`
 		CodecLongName string            `json:"codec_long_name"`
@@ -138,6 +140,7 @@ func parseProbe(data []byte) (*MediaInfo, error) {
 	for _, s := range p.Streams {
 		st := Stream{
 			Index:       s.Index,
+			PID:         int(hexInt(s.ID)),
 			Codec:       s.CodecName,
 			CodecLong:   s.CodecLongName,
 			Profile:     s.Profile,
@@ -176,6 +179,11 @@ func parseProbe(data []byte) (*MediaInfo, error) {
 		m.Streams = append(m.Streams, st)
 	}
 	return m, nil
+}
+
+func hexInt(s string) int64 {
+	n, _ := strconv.ParseInt(strings.TrimPrefix(s, "0x"), 16, 64)
+	return n
 }
 
 func tag(tags map[string]string, key string) string {

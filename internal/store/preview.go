@@ -62,7 +62,7 @@ func (s *Store) StartPreview(itemID int, start, length time.Duration) {
 	c := catalog.ContainerByID(s.Settings.Container)
 	out := filepath.Join(platform.PreviewDir(), fmt.Sprintf("preview-%d-%d.%s", it.ID, time.Now().UnixNano(), c.Ext))
 	input, inArgs := it.Source()
-	args, _, dur, err := settings.Args(settings.Job{Input: input, InputArgs: inArgs, Info: it.Info, Output: out,
+	args, _, dur, err := settings.Args(settings.Job{Input: input, InputArgs: inArgs, Picks: it.Picks, Info: it.Info, Output: out,
 		Window: settings.Window{Start: start, Duration: length}}, s.Settings, s.Caps)
 	if old := s.Preview.Output; old != "" {
 		os.Remove(old)

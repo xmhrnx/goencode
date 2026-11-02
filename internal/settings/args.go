@@ -22,6 +22,7 @@ type Window struct {
 type Job struct {
 	Input     string
 	InputArgs []string // options for the input, such as the concat demuxer
+	Picks     Picks
 	Info      *ffmpeg.MediaInfo
 	Output    string
 	Window    Window
@@ -33,7 +34,7 @@ func Args(j Job, s Settings, caps *ffmpeg.Capabilities) ([]string, *Plan, time.D
 	if j.Info == nil {
 		return nil, nil, 0, fmt.Errorf("the file hasn't been analyzed yet")
 	}
-	p := MakePlan(j.Info, s, caps)
+	p := MakePlan(j.Info, s, caps, j.Picks)
 	if p.Video == nil && len(nonDropped(p.Audio)) == 0 {
 		return nil, p, 0, fmt.Errorf("nothing to write: no video or audio track fits %s", p.Container.Label)
 	}
@@ -115,6 +116,7 @@ func Args(j Job, s Settings, caps *ffmpeg.Capabilities) ([]string, *Plan, time.D
 			continue
 		}
 		spec := fmt.Sprintf("a:%d", ai)
+		a = append(a, languageArgs(sp.Stream, spec)...)
 		a = append(a, "-map", fmt.Sprintf("0:%d", sp.Stream.Index))
 		if sp.Action == ActCopy {
 			a = append(a, "-c:"+spec, "copy")
@@ -150,6 +152,7 @@ func Args(j Job, s Settings, caps *ffmpeg.Capabilities) ([]string, *Plan, time.D
 			continue
 		}
 		spec := fmt.Sprintf("s:%d", si)
+		a = append(a, languageArgs(sp.Stream, spec)...)
 		a = append(a, "-map", fmt.Sprintf("0:%d", sp.Stream.Index))
 		if sp.Action == ActCopy {
 			a = append(a, "-c:"+spec, "copy")
@@ -287,4 +290,14 @@ func nonDropped(list []StreamPlan) []StreamPlan {
 
 func secs(d time.Duration) string {
 	return strconv.FormatFloat(d.Seconds(), 'f', 3, 64)
+}
+
+// languageArgs tags a track with its language. Most files carry it over
+// anyway; a Blu-ray's clips don't, and their languages come from the
+// disc's playlist.
+func languageArgs(st ffmpeg.Stream, spec string) []string {
+	if st.Language == "" || st.Language == "und" {
+		return nil
+	}
+	return []string{"-metadata:s:" + spec, "language=" + st.Language}
 }

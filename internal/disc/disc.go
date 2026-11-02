@@ -40,6 +40,10 @@ type Title struct {
 	Size     int64
 	Duration time.Duration // from the disc's playlists; 0 when unknown
 	Source   string        // "00800.mpls", "VTS_01"
+
+	// Languages are the audio and subtitle languages by stream PID, from
+	// the playlist: Blu-ray clips seldom carry them.
+	Languages map[int]string
 }
 
 // Root returns the disc folder that path is or is inside: path itself
@@ -176,12 +180,12 @@ func openBluRay(bdmv string) (*Title, error) {
 		if err != nil {
 			continue
 		}
-		clips, dur, err := ParseMPLS(data)
-		if err != nil || len(clips) == 0 {
+		pl, err := ParseMPLS(data)
+		if err != nil || len(pl.Clips) == 0 {
 			continue
 		}
-		files := make([]string, 0, len(clips))
-		for _, c := range clips {
+		files := make([]string, 0, len(pl.Clips))
+		for _, c := range pl.Clips {
 			f := child(streamDir, c+".m2ts")
 			if f == "" {
 				f = child(streamDir, c+".mts")
@@ -195,8 +199,8 @@ func openBluRay(bdmv string) (*Title, error) {
 		if files == nil {
 			continue
 		}
-		if best == nil || dur > best.Duration {
-			best = &Title{Kind: BluRay, Files: files, Duration: dur, Source: e.Name()}
+		if best == nil || pl.Duration > best.Duration {
+			best = &Title{Kind: BluRay, Files: files, Duration: pl.Duration, Source: e.Name(), Languages: pl.Languages}
 		}
 	}
 	if best == nil {
@@ -206,33 +210,116 @@ func openBluRay(bdmv string) (*Title, error) {
 	return best, nil
 }
 
-// ParseMPLS reads a Blu-ray playlist: the clips it plays, in order, and
-// how long it runs.
-func ParseMPLS(b []byte) (clips []string, dur time.Duration, err error) {
+// Playlist is what a Blu-ray playlist plays.
+type Playlist struct {
+	Clips     []string // clip names, "00010", in order
+	Duration  time.Duration
+	Languages map[int]string // by PID, from the first play item
+}
+
+// ParseMPLS reads a Blu-ray playlist: the clips it plays, in order, how
+// long it runs and the languages of its audio and subtitle streams.
+func ParseMPLS(b []byte) (Playlist, error) {
+	var pl Playlist
 	if len(b) < 20 || string(b[:4]) != "MPLS" {
-		return nil, 0, fmt.Errorf("not a Blu-ray playlist")
+		return pl, fmt.Errorf("not a Blu-ray playlist")
 	}
-	pl := int(binary.BigEndian.Uint32(b[8:12]))
-	if pl+10 > len(b) {
-		return nil, 0, fmt.Errorf("playlist is cut short")
+	start := int(binary.BigEndian.Uint32(b[8:12]))
+	if start+10 > len(b) {
+		return pl, fmt.Errorf("playlist is cut short")
 	}
-	n := int(binary.BigEndian.Uint16(b[pl+6:]))
-	p := pl + 10
+	n := int(binary.BigEndian.Uint16(b[start+6:]))
+	p := start + 10
 	var ticks uint64 // 45 kHz
 	for i := 0; i < n; i++ {
 		if p+22 > len(b) {
-			return nil, 0, fmt.Errorf("playlist is cut short")
+			return pl, fmt.Errorf("playlist is cut short")
 		}
 		size := int(binary.BigEndian.Uint16(b[p:]))
-		clips = append(clips, string(b[p+2:p+7]))
+		end := p + 2 + size
+		pl.Clips = append(pl.Clips, string(b[p+2:p+7]))
 		in := binary.BigEndian.Uint32(b[p+14:])
 		out := binary.BigEndian.Uint32(b[p+18:])
 		if out > in {
 			ticks += uint64(out - in)
 		}
-		p += 2 + size
+		if i == 0 && end <= len(b) {
+			pl.Languages = stnLanguages(b[:end], p)
+		}
+		p = end
 	}
-	return clips, time.Duration(ticks) * time.Second / 45000, nil
+	pl.Duration = time.Duration(ticks) * time.Second / 45000
+	return pl, nil
+}
+
+// stnLanguages reads the stream table of the play item at p: each
+// stream's PID and, for audio and subtitles, its language code.
+func stnLanguages(b []byte, p int) map[int]string {
+	q := p + 34 // past the play item's fixed fields
+	if q > len(b) {
+		return nil
+	}
+	if b[p+12]&0x10 != 0 { // multi-angle: skip the other angles' clips
+		if q+2 > len(b) {
+			return nil
+		}
+		q += 2 + (int(b[q])-1)*10
+	}
+	if q+16 > len(b) {
+		return nil
+	}
+	count := 0
+	for _, c := range b[q+4 : q+11] {
+		count += int(c)
+	}
+	q += 16
+	langs := map[int]string{}
+	for i := 0; i < count && q < len(b); i++ {
+		// stream_entry: its type, then the PID at a type-dependent place.
+		entry := q + 1
+		if entry+int(b[q]) > len(b) || b[q] < 3 {
+			break
+		}
+		pid := -1
+		switch b[entry] {
+		case 1:
+			pid = int(binary.BigEndian.Uint16(b[entry+1:]))
+		case 2:
+			pid = int(binary.BigEndian.Uint16(b[entry+3:]))
+		case 3, 4:
+			pid = int(binary.BigEndian.Uint16(b[entry+2:]))
+		}
+		q = entry + int(b[q])
+		// stream_attributes: the coding type, then the language for
+		// audio (after a format byte), subtitles and menus.
+		if q >= len(b) {
+			break
+		}
+		attr, alen := q+1, int(b[q])
+		if attr+alen > len(b) || alen < 1 {
+			break
+		}
+		lang := ""
+		switch t := b[attr]; {
+		case (t >= 0x80 && t <= 0x86) || t == 0xA1 || t == 0xA2:
+			if alen >= 5 {
+				lang = string(b[attr+2 : attr+5])
+			}
+		case t == 0x90 || t == 0x91:
+			if alen >= 4 {
+				lang = string(b[attr+1 : attr+4])
+			}
+		case t == 0x92:
+			if alen >= 5 {
+				lang = string(b[attr+2 : attr+5])
+			}
+		}
+		if pid >= 0 && lang != "" && strings.Trim(lang, "\x00 ") != "" {
+			langs[pid] = strings.ToLower(lang)
+		}
+		q = attr + alen
+	}
+	return langs
 }
 
 var bdName = regexp.MustCompile(`<di:name>([^<]+)</di:name>`)
