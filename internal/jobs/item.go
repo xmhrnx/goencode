@@ -5,6 +5,7 @@ import (
 	"image"
 	"time"
 
+	"github.com/xmhrnx/goencode/internal/disc"
 	"github.com/xmhrnx/goencode/internal/ffmpeg"
 )
 
@@ -38,6 +39,12 @@ type Item struct {
 	Size     int64
 	Imported bool // copied into app storage from a phone's picker
 
+	// Disc is set when Path is a Blu-ray or DVD folder. ffmpeg then reads
+	// Input with InputArgs, which join the main title's clips.
+	Disc      *disc.Title
+	Input     string
+	InputArgs []string
+
 	Info  *ffmpeg.MediaInfo
 	Thumb image.Image
 
@@ -49,6 +56,14 @@ type Item struct {
 	Log      []string
 	Started  time.Time
 	Finished time.Time
+}
+
+// Source is what ffmpeg reads for the item: the file, or a disc's title.
+func (it *Item) Source() (string, []string) {
+	if it.Input != "" {
+		return it.Input, it.InputArgs
+	}
+	return it.Path, nil
 }
 
 // Elapsed is how long the last encode took or has taken so far.

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/xmhrnx/goencode/internal/ffmpeg"
@@ -113,8 +115,21 @@ func (s *Store) run(it *jobs.Item) {
 		os.MkdirAll(fallback, 0o755)
 	}
 	it.Output = ""
-	out := settings.OutputPath(it.Path, s.Settings, fallback, s.taken)
-	args, _, dur, err := settings.Args(settings.Job{Input: it.Path, Info: it.Info, Output: out}, s.Settings, s.Caps)
+	name := it.Path
+	if it.Disc != nil {
+		// A disc's result is named after it and goes beside its folder,
+		// or, for the disc itself, which can't be written to, with
+		// results from phones.
+		parent := filepath.Dir(it.Path)
+		if parent == it.Path || it.Disc.Root == filepath.VolumeName(it.Path)+string(filepath.Separator) {
+			parent = platform.OutputDir()
+			os.MkdirAll(parent, 0o755)
+		}
+		name = filepath.Join(parent, fileName.Replace(it.Disc.Name)+".disc")
+	}
+	out := settings.OutputPath(name, s.Settings, fallback, s.taken)
+	input, inArgs := it.Source()
+	args, _, dur, err := settings.Args(settings.Job{Input: input, InputArgs: inArgs, Info: it.Info, Output: out}, s.Settings, s.Caps)
 	if err != nil {
 		it.Status, it.Err = jobs.Failed, err.Error()
 		return
@@ -250,3 +265,6 @@ func FormatBytes(n int64) string {
 	}
 	return fmt.Sprintf("%.1f %cB", float64(n)/float64(div), "KMGTPE"[exp])
 }
+
+// fileName makes a disc's title safe as a file name: "Film: Part 2".
+var fileName = strings.NewReplacer(": ", " - ", ":", "-", "/", "-", "\\", "-", "?", "", "*", "", "\"", "'", "<", "", ">", "", "|", "-")

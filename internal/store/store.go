@@ -53,6 +53,7 @@ type Store struct {
 
 	Running  bool
 	cancels  map[int]context.CancelFunc
+	probes   chan struct{} // limits how many files are analyzed at once
 	release  func()
 	batchEnd func()
 
@@ -76,7 +77,7 @@ const (
 
 // New creates the store and starts looking for ffmpeg.
 func New(ctx context.Context, host Host) *Store {
-	s := &Store{host: host, ctx: ctx, cancels: map[int]context.CancelFunc{}}
+	s := &Store{host: host, ctx: ctx, cancels: map[int]context.CancelFunc{}, probes: make(chan struct{}, 2)}
 	s.Prefs = platform.LoadPrefs()
 	s.Settings = s.Prefs.Settings
 	s.Toast = func(ToastKind, string) {}

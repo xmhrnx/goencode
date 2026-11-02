@@ -34,6 +34,8 @@ in the batch: video, audio, subtitles, chapters, metadata and output naming.
   startup, so GoEncode only offers the ones that work on your machine.
 - **Batches.** Drag and drop files or folders, encode up to 4 files at once, follow per-file and
   overall progress, cancel or retry files, and get a notification when the batch finishes.
+- **Blu-ray and DVD folders.** A disc, or a copy of one, is added as one file: its main title,
+  the longest Blu-ray playlist or the largest DVD title set, with its parts joined in order.
 
 ## Getting ffmpeg
 

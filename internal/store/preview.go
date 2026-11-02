@@ -61,7 +61,8 @@ func (s *Store) StartPreview(itemID int, start, length time.Duration) {
 	os.MkdirAll(platform.PreviewDir(), 0o755)
 	c := catalog.ContainerByID(s.Settings.Container)
 	out := filepath.Join(platform.PreviewDir(), fmt.Sprintf("preview-%d-%d.%s", it.ID, time.Now().UnixNano(), c.Ext))
-	args, _, dur, err := settings.Args(settings.Job{Input: it.Path, Info: it.Info, Output: out,
+	input, inArgs := it.Source()
+	args, _, dur, err := settings.Args(settings.Job{Input: input, InputArgs: inArgs, Info: it.Info, Output: out,
 		Window: settings.Window{Start: start, Duration: length}}, s.Settings, s.Caps)
 	if old := s.Preview.Output; old != "" {
 		os.Remove(old)
@@ -78,7 +79,6 @@ func (s *Store) StartPreview(itemID int, start, length time.Duration) {
 	_, hasVideo := it.Info.Video()
 	keepVideo := hasVideo && c.Holds(ffmpeg.KindVideo) && s.Settings.Video.Mode != settings.ModeDrop && c.ID != "gif"
 	full := it.Info.Duration
-	path := it.Path
 	began := time.Now()
 
 	go func() {
@@ -97,7 +97,7 @@ func (s *Store) StartPreview(itemID int, start, length time.Duration) {
 		var before, after image.Image
 		if err == nil && keepVideo {
 			mid := dur / 2
-			before, _ = ffmpeg.Frame(ctx, bins, path, start+mid, 960)
+			before, _ = ffmpeg.Frame(ctx, bins, input, start+mid, 960, inArgs...)
 			after, _ = ffmpeg.Frame(ctx, bins, out, mid, 960)
 		}
 		s.host.Post(func() {

@@ -75,10 +75,11 @@ func (m *MediaInfo) Video() (Stream, bool) {
 	return v[0], true
 }
 
-// Probe runs ffprobe on a file.
-func Probe(ctx context.Context, b Binaries, path string) (*MediaInfo, error) {
-	out, err := command(ctx, b.FFprobe, "-v", "error", "-print_format", "json",
-		"-show_format", "-show_streams", "-show_chapters", path).Output()
+// Probe runs ffprobe on a file. inArgs are input options, such as the
+// concat demuxer for a disc's clips.
+func Probe(ctx context.Context, b Binaries, path string, inArgs ...string) (*MediaInfo, error) {
+	args := append([]string{"-v", "error", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters"}, inArgs...)
+	out, err := command(ctx, b.FFprobe, append(args, "-i", path)...).Output()
 	if err != nil {
 		if ee, ok := err.(interface{ ExitCode() int }); ok && ee.ExitCode() != 0 {
 			return nil, fmt.Errorf("not a media file ffmpeg can read")

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/xmhrnx/goencode/internal/disc"
 )
 
 // MediaExtensions are the file types offered in pickers and collected
@@ -26,7 +28,8 @@ func IsMedia(path string) bool {
 }
 
 // Expand replaces folders with the media files inside them, recursively,
-// and leaves files as they are.
+// and leaves files as they are. Blu-ray and DVD folders stay folders, one
+// per disc, rather than the many clips inside them.
 func Expand(paths []string) []string {
 	var out []string
 	for _, p := range paths {
@@ -38,9 +41,18 @@ func Expand(paths []string) []string {
 			out = append(out, p)
 			continue
 		}
+		if root := disc.Root(p); root != "" {
+			out = append(out, root)
+			continue
+		}
 		var found []string
 		filepath.WalkDir(p, func(path string, d os.DirEntry, err error) error {
-			if err == nil && !d.IsDir() && IsMedia(path) {
+			switch {
+			case err != nil:
+			case d.IsDir() && path != p && disc.Root(path) == path:
+				found = append(found, path)
+				return filepath.SkipDir
+			case !d.IsDir() && IsMedia(path):
 				found = append(found, path)
 			}
 			return nil

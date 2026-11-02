@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/xmhrnx/goencode/internal/disc"
 	"github.com/xmhrnx/goencode/internal/ffmpeg"
 	"github.com/xmhrnx/goencode/internal/jobs"
 	"github.com/xmhrnx/goencode/internal/platform"
@@ -67,7 +68,7 @@ func (s *Store) has(path string) bool {
 func (s *Store) addItem(path string, imported bool) {
 	s.nextID++
 	it := &jobs.Item{ID: s.nextID, Path: path, Name: filepath.Base(path), Imported: imported, Status: jobs.Probing}
-	if fi, err := os.Stat(path); err == nil {
+	if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
 		it.Size = fi.Size()
 	}
 	s.Items = append(s.Items, it)
@@ -79,14 +80,42 @@ func (s *Store) addItem(path string, imported bool) {
 	}
 }
 
-// probe reads a file's streams and a thumbnail in the background.
+// probe reads a file's streams and a thumbnail in the background, a few
+// files at a time: a dropped folder can hold hundreds. A disc folder's
+// main title is found first.
 func (s *Store) probe(it *jobs.Item) {
 	bins := s.Bins
+	path := it.Path
 	go func() {
-		ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
+		select {
+		case s.probes <- struct{}{}:
+			defer func() { <-s.probes }()
+		case <-s.ctx.Done():
+			return
+		}
+		var title *disc.Title
+		input, inArgs := path, []string(nil)
+		if fi, err := os.Stat(path); err == nil && fi.IsDir() {
+			var err error
+			if title, err = disc.Open(path); err == nil {
+				input, inArgs, err = title.Input(platform.PreviewDir())
+			}
+			if err != nil {
+				s.host.Post(func() { it.Status, it.Err = jobs.Invalid, err.Error() })
+				return
+			}
+		}
+		ctx, cancel := context.WithTimeout(s.ctx, 90*time.Second)
 		defer cancel()
-		info, err := ffmpeg.Probe(ctx, bins, it.Path)
+		info, err := ffmpeg.Probe(ctx, bins, input, inArgs...)
+		if err == nil && title != nil && title.Duration > 0 {
+			info.Duration = title.Duration
+		}
 		s.host.Post(func() {
+			if title != nil {
+				it.Disc, it.Input, it.InputArgs = title, input, inArgs
+				it.Name, it.Size = title.Name+" ("+title.Kind.String()+")", title.Size
+			}
 			if err != nil {
 				it.Status, it.Err = jobs.Invalid, err.Error()
 				return
@@ -101,7 +130,7 @@ func (s *Store) probe(it *jobs.Item) {
 			if at > 30*time.Second {
 				at = 30 * time.Second
 			}
-			if img, err := ffmpeg.Frame(ctx, bins, it.Path, at, 320); err == nil {
+			if img, err := ffmpeg.Frame(ctx, bins, input, at, 320, inArgs...); err == nil {
 				s.host.Post(func() { it.Thumb = img })
 			}
 		}

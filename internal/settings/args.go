@@ -20,7 +20,8 @@ type Window struct {
 
 // Job is everything needed to turn a file into ffmpeg arguments.
 type Job struct {
-	Input  string
+	Input     string
+	InputArgs []string // options for the input, such as the concat demuxer
 	Info   *ffmpeg.MediaInfo
 	Output string
 	Window Window
@@ -53,6 +54,7 @@ func Args(j Job, s Settings, caps *ffmpeg.Capabilities) ([]string, *Plan, time.D
 	if j.Window.Start > 0 {
 		a = append(a, "-ss", secs(j.Window.Start))
 	}
+	a = append(a, j.InputArgs...)
 	a = append(a, "-i", j.Input)
 	duration := j.Info.Duration
 	if j.Window.Duration > 0 {
