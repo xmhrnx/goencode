@@ -22,9 +22,9 @@ type Window struct {
 type Job struct {
 	Input     string
 	InputArgs []string // options for the input, such as the concat demuxer
-	Info   *ffmpeg.MediaInfo
-	Output string
-	Window Window
+	Info      *ffmpeg.MediaInfo
+	Output    string
+	Window    Window
 }
 
 // Args builds the ffmpeg arguments for a job (after the global flags that
