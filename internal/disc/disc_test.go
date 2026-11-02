@@ -101,7 +101,9 @@ func TestBluRay(t *testing.T) {
 	write(t, filepath.Join(root, "BDMV", "PLAYLIST", "00000.mpls"), mpls([]string{"00001"}, 30))
 	write(t, filepath.Join(root, "BDMV", "PLAYLIST", "00800.mpls"), mpls([]string{"00010", "00011"}, 3600))
 	write(t, filepath.Join(root, "BDMV", "PLAYLIST", "00900.mpls"), mpls([]string{"00099"}, 9000)) // clip missing
-	loop := make([]string, 300) // a menu's background, looped for 5 hours
+
+	// A menu's background, looped for 5 hours.
+	loop := make([]string, 300)
 	for i := range loop {
 		loop[i] = "00001"
 	}
