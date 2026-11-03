@@ -1,6 +1,6 @@
 package theme
 
-import "github.com/mehran9675/giode"
+import "github.com/xmhrnx/giode"
 
 // Spacing scale in dp.
 const (

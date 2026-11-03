@@ -12,6 +12,7 @@ permissions:
   contents: write
 
 env:
+  # A four-part tag (v1.4.2.7) also sets the build number.
   GIODE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
   GIODE_BUILD: ${{ github.run_number }}
 
@@ -29,7 +30,7 @@ jobs:
           sudo apt-get install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libffi-dev libxcursor-dev libvulkan-dev
       - name: Project setup (giode.toml ci.setup)
         run: |
-          bash ci/version.sh && bash android/ci-setup.sh
+          bash android/ci-setup.sh
       - name: Test (giode.toml ci.test)
         run: |
           go vet ./... && go test -short ./...
@@ -52,10 +53,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libffi-dev libxcursor-dev libvulkan-dev nsis osslsigncode
-          go install github.com/mehran9675/giode-cli/cmd/giode@latest
+          go install github.com/xmhrnx/giode-cli/cmd/giode@latest
       - name: Project setup (giode.toml ci.setup)
         run: |
-          bash ci/version.sh && bash android/ci-setup.sh
+          bash android/ci-setup.sh
       - name: Signing keys
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -99,10 +100,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      - run: go install github.com/mehran9675/giode-cli/cmd/giode@latest
-      - name: Project setup (giode.toml ci.setup)
-        run: |
-          bash ci/version.sh
+      - run: go install github.com/xmhrnx/giode-cli/cmd/giode@latest
       - name: Signing certificate
         if: env.MACOS_CERT_BASE64 != ''
         env:

@@ -6,7 +6,7 @@ package icons
 import (
 	_ "embed"
 
-	"github.com/mehran9675/giode"
+	"github.com/xmhrnx/giode"
 )
 
 // Logo is the app icon at 256×256, shown in the header.

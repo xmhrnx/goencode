@@ -8,7 +8,7 @@ import (
 	"errors"
 	"runtime"
 
-	"github.com/mehran9675/giode"
+	"github.com/xmhrnx/giode"
 
 	"github.com/xmhrnx/goencode/internal/jobs"
 	"github.com/xmhrnx/goencode/internal/platform"

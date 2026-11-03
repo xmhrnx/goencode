@@ -3,7 +3,7 @@ package views
 import (
 	"path/filepath"
 
-	"github.com/mehran9675/giode"
+	"github.com/xmhrnx/giode"
 
 	"github.com/xmhrnx/goencode/internal/catalog"
 	"github.com/xmhrnx/goencode/internal/platform"

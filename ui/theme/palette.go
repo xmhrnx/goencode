@@ -2,7 +2,7 @@
 // dark mode, derived surface colors, spacing and type scale.
 package theme
 
-import "github.com/mehran9675/giode"
+import "github.com/xmhrnx/giode"
 
 // Brand colors: a violet-to-cyan gradient, the same as the app icon.
 const (

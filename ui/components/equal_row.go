@@ -8,7 +8,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 
-	"github.com/mehran9675/giode"
+	"github.com/xmhrnx/giode"
 )
 
 type equalRow struct {

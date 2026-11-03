@@ -10,7 +10,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/mehran9675/giode"
+	"github.com/xmhrnx/giode"
 
 	"github.com/xmhrnx/goencode/internal/store"
 	"github.com/xmhrnx/goencode/ui/icons"

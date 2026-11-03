@@ -1,8 +1,8 @@
 package views
 
 import (
-	"github.com/mehran9675/giode"
-	"github.com/mehran9675/giode/components/accordion"
+	"github.com/xmhrnx/giode"
+	"github.com/xmhrnx/giode/components/accordion"
 
 	"github.com/xmhrnx/goencode/internal/catalog"
 	"github.com/xmhrnx/goencode/internal/ffmpeg"

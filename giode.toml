@@ -1,10 +1,10 @@
 # giode.toml configures how the giode CLI builds this app.
-# Reference: https://github.com/mehran9675/giode-cli#giodetoml
+# Reference: https://github.com/xmhrnx/giode-cli#giodetoml
 
 [app]
 name = "GoEncode"
 id = "com.goencode.app"            # reverse-DNS, unique to your app; stores never let it change
-version = "1.0.0"                # giode takes major.minor.patch; CI trims a v1.0.0.0 tag to this (ci/version.sh)
+version = "1.0.0"                # a release tag sets it in CI; a four-part tag (v1.0.0.0) builds as 1.0.0
 build = 1                    # raise for every store upload (giode bump)
 icon = "assets/icon.png"
 package = "."
@@ -71,11 +71,9 @@ license = "Apache-2.0"       # SPDX, for .deb, .rpm and AppStream
 [ci]
 trigger = "release"
 test = "go vet ./... && go test -short ./..."
+dispatch = true # a "Run workflow" button, to test a build without a release
 
-# ci/version.sh trims a release tag to the major.minor.patch giode takes
-# (v1.0.0.0 builds as 1.0.0). android/ci-setup.sh installs what the Android
-# packages need (nasm, bundletool) and builds ffmpeg for Android; it skips
-# the test job.
+# android/ci-setup.sh installs what the Android packages need (nasm,
+# bundletool) and builds ffmpeg for Android; it skips the test job.
 [ci.setup]
-linux = "bash ci/version.sh && bash android/ci-setup.sh"
-macos = "bash ci/version.sh"
+linux = "bash android/ci-setup.sh"

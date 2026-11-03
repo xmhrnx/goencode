@@ -5,8 +5,8 @@ import (
 
 	"gioui.org/layout"
 
-	"github.com/mehran9675/giode"
-	"github.com/mehran9675/giode/components/sheet"
+	"github.com/xmhrnx/giode"
+	"github.com/xmhrnx/giode/components/sheet"
 
 	"github.com/xmhrnx/goencode/internal/store"
 	"github.com/xmhrnx/goencode/ui/components"

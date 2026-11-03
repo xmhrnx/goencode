@@ -5,7 +5,7 @@ go 1.26.6
 require (
 	gioui.org v0.10.2
 	git.wow.st/gmp/jni v0.0.0-20210610011705-34026c7e22d0
-	github.com/mehran9675/giode v0.1.19-alpha.1
+	github.com/xmhrnx/giode v0.1.30-alpha.1
 )
 
 require (

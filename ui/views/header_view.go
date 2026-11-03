@@ -1,7 +1,7 @@
 package views
 
 import (
-	"github.com/mehran9675/giode"
+	"github.com/xmhrnx/giode"
 
 	"github.com/xmhrnx/goencode/ui/components"
 	"github.com/xmhrnx/goencode/ui/theme"
