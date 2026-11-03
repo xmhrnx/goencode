@@ -48,11 +48,20 @@ JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)"
 
 mkdir -p "$WORK"
 cd "$WORK"
+# The sources come from their projects, or from GitHub mirrors when those
+# don't answer: ffmpeg.org going unreachable has failed a release build.
 if [[ ! -d "ffmpeg-$FFMPEG_VERSION" ]]; then
-	curl -fsSL "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz" | tar xJ
+	if ! curl -fsSL --retry 3 --connect-timeout 30 -o ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz"; then
+		echo "ffmpeg.org didn't answer; fetching FFmpeg n$FFMPEG_VERSION from GitHub" >&2
+		curl -fsSL --retry 3 -o ffmpeg.tar.gz "https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n$FFMPEG_VERSION.tar.gz"
+		tar xzf ffmpeg.tar.gz && mv "FFmpeg-n$FFMPEG_VERSION" "ffmpeg-$FFMPEG_VERSION" && rm ffmpeg.tar.gz
+	else
+		tar xJf ffmpeg.tar.xz && rm ffmpeg.tar.xz
+	fi
 fi
 if [[ ! -d x264 ]]; then
-	git clone --depth 1 --branch stable https://code.videolan.org/videolan/x264.git
+	git clone --depth 1 --branch stable https://code.videolan.org/videolan/x264.git ||
+		git clone --depth 1 --branch stable https://github.com/mirror/x264.git
 fi
 
 STAGE="$WORK/aar"
