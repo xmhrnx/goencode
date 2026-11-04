@@ -16,8 +16,9 @@ website = "https://github.com/xmhrnx/goencode"
 [android]
 min_sdk = 24
 keep_alive = true            # keeps a batch encoding while the app is in the background
-# ffmpeg and ffprobe for each ABI, built by android/build-ffmpeg.sh (run it
-# before giode build android); see docs/ffmpeg.md.
+# ffmpeg and ffprobe for each ABI, built by android/build-ffmpeg.sh, or
+# taken from a released APK by `go run ./android/fetchffmpeg` (on Windows);
+# run one before giode build android. See docs/ffmpeg.md.
 libraries = ["android/ffmpeg.aar"]
 # Adaptive icon layers, from assets/android/*.svg: the tile alone would
 # leave the launcher's white around it.

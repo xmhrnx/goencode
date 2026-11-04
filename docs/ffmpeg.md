@@ -25,6 +25,15 @@ Android only lets an app run programs from its *native library folder*. That fol
 
 `android/build-ffmpeg.sh` handles this. Run it on Linux or macOS with `ANDROID_NDK_HOME` set,
 before `giode build android`. The release workflow runs it automatically through `[ci.setup]`.
+
+On Windows, or to skip the half-hour build, take ffmpeg from a released APK instead:
+
+```
+go run ./android/fetchffmpeg
+```
+
+It writes `android/ffmpeg.aar` from the newest release that has an APK. `-apk` takes another APK,
+a file or a URL.
 It builds ffmpeg 7.1.1 with x264, MediaCodec and ffmpeg's built-in encoders for `arm64-v8a`,
 `armeabi-v7a` and `x86_64`. The x264 build is GPL, so the APK is too. Set `ABIS` or
 `FFMPEG_VERSION` to change what it builds.
