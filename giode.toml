@@ -26,7 +26,10 @@ target_sdk = 36
 # uncompressed and leave them in the APK, where they can't be run. ffmpeg
 # must be unpacked into the native library folder (docs/ffmpeg.md), so
 # ask for that explicitly, as Gradle's useLegacyPackaging does.
-application_attributes = { extractNativeLibs = "true" }
+# enableOnBackInvokedCallback: Gio handles the back gesture in
+# onBackPressed(), which Android 16 stops calling for apps targeting API 36
+# (predictive back); opting out keeps back going back a screen.
+application_attributes = { extractNativeLibs = "true", enableOnBackInvokedCallback = "false" }
 # POST_NOTIFICATIONS stays (the default): "GoEncode finished" is a notification.
 keep_alive = true            # keeps a batch encoding while the app is in the background
 # ffmpeg and ffprobe for each ABI, built by android/build-ffmpeg.sh, or
