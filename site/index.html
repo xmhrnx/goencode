@@ -198,6 +198,16 @@
   .os small { color: var(--muted); font-family: var(--mono); font-size: 12px; }
   .note { color: var(--muted); font-size: 15px; max-width: 60ch; margin: 28px auto 0; }
 
+  /* privacy */
+  .policy { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .policy .feature h3 { margin-top: 0; }
+  #privacy { scroll-margin-top: 60px; }
+  .policy .feature p + p, .policy .feature ul, .policy .feature ul + p { margin-top: 10px; }
+  .policy .feature ul { margin-bottom: 0; padding-left: 20px; color: var(--muted); font-size: 15.5px; }
+  .policy .feature li + li { margin-top: 6px; }
+  .policy .feature b { color: var(--text); font-weight: 500; }
+  .policy-meta { color: var(--muted); font-size: 14px; margin: 26px 0 0; }
+  @media (max-width: 760px) { .policy { grid-template-columns: 1fr; } }
   footer { border-top: 1px solid var(--border); padding: 32px 0 44px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center; }
   footer .brand { display: flex; align-items: center; gap: 10px; }
@@ -231,6 +241,7 @@
       <a href="#features">Features</a>
       <a href="#presets">Presets</a>
       <a href="#download">Download</a>
+      <a href="#privacy">Privacy</a>
       <a class="gh" href="https://github.com/xmhrnx/goencode">GitHub</a>
     </div>
   </div>
@@ -421,10 +432,48 @@
   </div>
 </section>
 
+<section id="privacy" style="padding-top:0">
+  <div class="wrap">
+    <p class="eyebrow">Privacy policy</p>
+    <h2>Your media stays on your device.</h2>
+    <p class="lead">GoEncode collects no data. It has no account, no analytics, no ads and no crash reporting, and it doesn't connect to the internet: everything it does happens on your device. This policy covers the GoEncode app from GitHub, the Microsoft Store and Google Play.</p>
+    <div class="policy">
+      <div class="feature">
+        <h3>What GoEncode sends</h3>
+        <p>Nothing. Files are read and encoded by ffmpeg on your own device, and neither they nor anything about them is uploaded to the developer or anyone else. A file only leaves your device when you send it yourself, for example with the share sheet on Android, and then it goes to the app you choose.</p>
+      </div>
+      <div class="feature">
+        <h3>What it keeps on your device</h3>
+        <ul>
+          <li><b>Preferences</b> in GoEncode's app data folder: the ffmpeg location, theme, number of parallel encodes, whether to notify, and your last preset and settings.</li>
+          <li><b>Encoded files</b> where you choose, next to their sources by default; on Android 11 and later in Download/GoEncode.</li>
+          <li><b>Preview clips</b> in the system's temporary folder.</li>
+          <li><b>On Android, copies of the files you add</b>, in the app's private storage, because Android hands apps a stream rather than a file. A copy is deleted when you remove the file from the batch.</li>
+        </ul>
+        <p>To remove this data, delete GoEncode's app data folder; uninstalling does it for you on Android and in the Microsoft Store version. Encoded files are yours and stay where they were saved.</p>
+      </div>
+      <div class="feature">
+        <h3>Permissions</h3>
+        <ul>
+          <li><b>Notifications</b> (Android): to tell you when a batch has finished. You can turn this off in Preferences.</li>
+          <li><b>Running in the background</b> (Android): a foreground service with a visible notification keeps a batch encoding while you use other apps.</li>
+          <li><b>Folders</b> (macOS): macOS asks before GoEncode reads or writes in Documents, Desktop, Downloads or external drives, where your media may be.</li>
+        </ul>
+      </div>
+      <div class="feature">
+        <h3>Other parties</h3>
+        <p>GoEncode runs ffmpeg as a local program; ffmpeg doesn't connect anywhere either. The store or website you download GoEncode from handles that download under its own privacy policy. GoEncode contains no third-party code that collects data.</p>
+        <p>Questions or concerns: open an issue on <a href="https://github.com/xmhrnx/goencode/issues">GitHub</a>. If this policy changes, the new version is published here.</p>
+      </div>
+    </div>
+    <p class="policy-meta">Last updated 19 November 2026.</p>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <div class="brand"><img src="img/icon.png" alt=""> GoEncode — licensed under the <a href="https://github.com/xmhrnx/goencode/blob/main/LICENSE">Apache License 2.0</a>.</div>
-    <div>Built in Go with <a href="https://github.com/xmhrnx/giode">Giode</a> · <a href="https://github.com/xmhrnx/goencode">Source on GitHub</a></div>
+    <div>Built in Go with <a href="https://github.com/xmhrnx/giode">Giode</a> · <a href="#privacy">Privacy</a> · <a href="https://github.com/xmhrnx/goencode">Source on GitHub</a></div>
   </div>
 </footer>
 
