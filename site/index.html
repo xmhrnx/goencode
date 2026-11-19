@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoEncode — batch remux, encode and transcode with ffmpeg</title>
+<meta name="description" content="GoEncode is a front end for ffmpeg: add any number of files, pick one set of settings, and remux, encode or transcode the whole batch. Windows, macOS, Linux and Android.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0A0B10" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F5FA" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --violet: #7C5CFF;
+    --blue: #4F7BFF;
+    --cyan: #22D3EE;
+    --bg: #0A0B10;
+    --surface: #12141B;
+    --raised: #171A23;
+    --text: #ECEEF5;
+    --muted: #8A91A5;
+    --border: #242833;
+    --primary: #8B6CFF;
+    --accent: #22D3EE;
+    --ok: #34D399;
+    --warn: #FBBF24;
+    --bad: #F87171;
+    --grad: linear-gradient(90deg, var(--violet), var(--blue) 50%, var(--cyan));
+    --sans: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #F4F5FA;
+      --surface: #FFFFFF;
+      --raised: #FBFBFE;
+      --text: #11131C;
+      --muted: #5F6679;
+      --border: #E2E5EE;
+      --primary: #6D4AFF;
+      --accent: #0891B2;
+      --ok: #059669;
+      --warn: #D97706;
+      --bad: #DC2626;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; }
+  code, .mono { font-family: var(--mono); font-size: .88em; }
+  .wrap { width: min(1120px, 100% - 40px); margin-inline: auto; }
+
+  /* ---------- top bar ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 20px; height: 60px; }
+  nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; letter-spacing: -.01em; }
+  nav .brand img { width: 30px; height: 30px; }
+  nav .links { margin-left: auto; display: flex; gap: 22px; font-size: 15px; }
+  nav .links a { text-decoration: none; color: var(--muted); }
+  nav .links a:hover { color: var(--text); }
+  @media (max-width: 640px) { nav .links a:not(.gh) { display: none; } }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; padding: 88px 0 72px; isolation: isolate; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(40% 50% at 18% 20%, color-mix(in srgb, var(--violet) 34%, transparent), transparent 70%),
+      radial-gradient(35% 45% at 88% 70%, color-mix(in srgb, var(--cyan) 20%, transparent), transparent 70%);
+    filter: blur(10px);
+  }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+  .hero .icon { width: 108px; height: 108px; filter: drop-shadow(0 18px 40px rgba(124,92,255,.35)); }
+  h1 {
+    font-size: clamp(44px, 7vw, 76px); line-height: 1; letter-spacing: -.035em;
+    margin: 22px 0 16px; font-weight: 700;
+  }
+  h1 .g { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tagline { font-size: clamp(19px, 2.2vw, 23px); color: var(--muted); max-width: 32ch; margin: 0 0 30px; }
+  .tagline b { color: var(--text); font-weight: 500; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 13px 22px; border-radius: 12px; font-weight: 600; text-decoration: none; font-size: 16px;
+    border: 1px solid var(--border); background: var(--surface);
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); border-color: var(--primary); }
+  .btn.primary { background: var(--grad); color: #fff; border: 0; box-shadow: 0 10px 30px -8px rgba(79,123,255,.6); }
+  .btn svg { width: 18px; height: 18px; }
+  .platforms-line { margin-top: 18px; color: var(--muted); font-size: 14px; }
+
+  /* the batch: a stylised queue like the app's file list */
+  .batch {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 18px; box-shadow: 0 30px 80px -30px rgba(0,0,0,.55);
+    font-family: var(--mono); font-size: 13px;
+  }
+  .batch-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); padding: 2px 4px 14px; }
+  .batch-head .dots { display: flex; gap: 6px; }
+  .batch-head .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); display: block; }
+  .job { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px; border-radius: 12px; background: var(--raised); border: 1px solid var(--border); }
+  .job + .job { margin-top: 10px; }
+  .job .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+  .job .state { font-size: 11px; padding: 2px 8px; border-radius: 999px; align-self: center; }
+  .state.done { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .state.run { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .state.wait { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+  .job .streams { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted); }
+  .tag.copy { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+  .tag.enc { color: var(--primary); border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
+  .tag.conv { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  .bar { grid-column: 1 / -1; height: 6px; border-radius: 6px; background: color-mix(in srgb, var(--text) 8%, transparent); overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--grad); border-radius: inherit; }
+  .bar.live span { animation: fill 6s ease-in-out infinite alternate; }
+  @keyframes fill { from { width: 22%; } to { width: 78%; } }
+  @media (prefers-reduced-motion: reduce) { .bar.live span { animation: none; width: 54%; } .btn:hover { transform: none; } }
+  .batch-foot { color: var(--muted); padding: 14px 4px 2px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+  /* ---------- sections ---------- */
+  section { padding: 84px 0; }
+  .eyebrow { font-family: var(--mono); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h2 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.1; letter-spacing: -.025em; margin: 0 0 16px; }
+  .lead { color: var(--muted); max-width: 62ch; margin: 0 0 44px; font-size: 18px; }
+
+  /* pipeline strip */
+  .pipeline { border-block: 1px solid var(--border); background: var(--surface); padding: 30px 0; }
+  .pipe { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 14px; color: var(--muted); flex-wrap: wrap; }
+  .pipe .step { display: flex; align-items: center; gap: 10px; }
+  .pipe .num { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--grad); color: #fff; font-weight: 600; font-size: 13px; }
+  .pipe .step b { color: var(--text); font-weight: 600; }
+  .pipe .arrow { flex: 1; min-width: 24px; height: 2px; background: linear-gradient(90deg, var(--border), var(--primary), var(--border)); }
+  @media (max-width: 760px) { .pipe { flex-direction: column; align-items: flex-start; } .pipe .arrow { display: none; } }
+
+  /* features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .feature {
+    padding: 26px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .feature::after {
+    content: ""; position: absolute; left: 0; top: 0; height: 3px; width: 100%;
+    background: var(--grad); opacity: 0; transition: opacity .2s;
+  }
+  .feature:hover::after { opacity: 1; }
+  .feature svg { width: 28px; height: 28px; stroke: var(--primary); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .feature h3 { margin: 14px 0 8px; font-size: 19px; letter-spacing: -.01em; }
+  .feature p { margin: 0; color: var(--muted); font-size: 15.5px; }
+  .feature.wide { grid-column: span 2; }
+  .feature.full { grid-column: 1 / -1; }
+
+  /* presets */
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .preset { padding: 16px 18px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); }
+  .preset .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .preset b { font-size: 16px; }
+  .preset .chip { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; color: var(--primary); background: color-mix(in srgb, var(--primary) 13%, transparent); white-space: nowrap; }
+  .preset p { margin: 6px 0 0; font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+  /* hardware */
+  .hw { display: flex; flex-wrap: wrap; gap: 10px; }
+  .hw span { font-family: var(--mono); font-size: 14px; padding: 9px 14px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--accent) 50%, var(--border)); color: var(--text); }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+  .terminal { background: #07080C; color: #C9CEDC; border-radius: 16px; padding: 20px 22px; font-family: var(--mono); font-size: 13.5px; line-height: 1.8; border: 1px solid #1d2029; overflow-x: auto; }
+  .terminal .p { color: #22D3EE; }
+  .terminal .c { color: #5F6679; }
+  .terminal .ok { color: #34D399; }
+
+  /* download */
+  .download { text-align: center; position: relative; isolation: isolate; }
+  .download::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: radial-gradient(50% 60% at 50% 40%, color-mix(in srgb, var(--violet) 18%, transparent), transparent 70%);
+  }
+  .download .lead { margin-inline: auto; }
+  .oses { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; max-width: 880px; margin: 0 auto 34px; }
+  .os { padding: 22px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .os:hover { border-color: var(--primary); transform: translateY(-2px); }
+  .os svg { width: 30px; height: 30px; fill: var(--text); }
+  .os b { display: block; margin-top: 10px; }
+  .os small { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .note { color: var(--muted); font-size: 15px; max-width: 60ch; margin: 28px auto 0; }
+
+  footer { border-top: 1px solid var(--border); padding: 32px 0 44px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center; }
+  footer .brand { display: flex; align-items: center; gap: 10px; }
+  footer img { width: 24px; height: 24px; }
+  footer a { color: var(--text); }
+
+  @media (max-width: 920px) {
+    .hero-grid, .split { grid-template-columns: 1fr; gap: 40px; }
+    .features { grid-template-columns: 1fr 1fr; }
+    .feature.wide { grid-column: auto; }
+    .oses { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    .wrap { width: calc(100% - 32px); }
+    .hero { padding: 52px 0 48px; }
+    .hero .icon { width: 84px; height: 84px; }
+    section { padding: 60px 0; }
+    .features { grid-template-columns: 1fr; }
+    .feature.wide { grid-column: auto; }
+    .btn { flex: 1 1 auto; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="img/icon.png" alt=""> GoEncode</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#presets">Presets</a>
+      <a href="#download">Download</a>
+      <a class="gh" href="https://github.com/xmhrnx/goencode">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <img class="icon" src="img/icon.png" alt="GoEncode icon">
+      <h1>Go<span class="g">Encode</span></h1>
+      <p class="tagline">Remux, encode and transcode media files with ffmpeg. <b>One set of settings, any number of files.</b></p>
+      <div class="cta">
+        <a class="btn primary" href="#download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
+          Download
+        </a>
+        <a class="btn" href="https://github.com/xmhrnx/goencode">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+          Source code
+        </a>
+      </div>
+      <p class="platforms-line">Windows · macOS · Linux · Android — free and open source</p>
+    </div>
+
+    <div class="batch" aria-hidden="true">
+      <div class="batch-head"><span>batch · 3 files</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="job">
+        <span class="name">holiday-2024.mkv</span><span class="state done">done</span>
+        <div class="streams"><span class="tag enc">video · encode</span><span class="tag copy">audio · copy</span><span class="tag copy">subs · copy</span></div>
+        <div class="bar"><span style="width:100%"></span></div>
+      </div>
+      <div class="job">
+        <span class="name">BDMV — main title</span><span class="state run">encoding</span>
+        <div class="streams"><span class="tag enc">video · encode</span><span class="tag conv">audio · convert</span><span class="tag copy">chapters</span></div>
+        <div class="bar live"><span></span></div>
+      </div>
+      <div class="job">
+        <span class="name">interview_take3.mov</span><span class="state wait">queued</span>
+        <div class="streams"><span class="tag copy">video · copy</span><span class="tag enc">audio · encode</span></div>
+        <div class="bar"><span style="width:0"></span></div>
+      </div>
+      <div class="batch-foot"><span>up to 4 at once</span><span>Universal MP4</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="pipeline">
+  <div class="wrap pipe">
+    <div class="step"><span class="num">1</span><span><b>Drop</b> files or folders</span></div>
+    <span class="arrow"></span>
+    <div class="step"><span class="num">2</span><span><b>Pick</b> a preset or every setting</span></div>
+    <span class="arrow"></span>
+    <div class="step"><span class="num">3</span><span><b>Preview</b> a clip</span></div>
+    <span class="arrow"></span>
+    <div class="step"><span class="num">4</span><span><b>Encode</b> the batch</span></div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <p class="eyebrow">What it does</p>
+    <h2>All of ffmpeg, none of the flags.</h2>
+    <p class="lead">GoEncode applies one recipe to every file in the batch: video, audio, subtitles, chapters, metadata and output naming. It drives the <code>ffmpeg</code> and <code>ffprobe</code> programs you already have.</p>
+
+    <div class="features">
+      <article class="feature wide">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h6M7 17h8"/></svg>
+        <h3>Every encoder ffmpeg has</h3>
+        <p>At startup GoEncode reads what the installed ffmpeg can do (<code>ffmpeg -codecs</code>, plus <code>-h encoder=…</code> for each encoder) and offers all of it. The common ones — x264, x265, SVT‑AV1, libaom, rav1e, VP9, ProRes, DNxHR, FFV1, AAC, Opus, MP3, FLAC, AC‑3 and others — have curated settings.</p>
+      </article>
+      <article class="feature">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><path d="m15 4 3 3-3 3"/></svg>
+        <h3>Copy or remux</h3>
+        <p>Copy any kind of stream untouched, so moving a file into a new container takes seconds and loses no quality.</p>
+      </article>
+      <article class="feature">
+        <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        <h3>Only valid choices</h3>
+        <p>You only see codecs, pixel formats and sample rates that fit the current container and encoder. Change the format and settings that no longer apply are fixed for you.</p>
+      </article>
+      <article class="feature">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"/><rect x="13" y="5" width="8" height="14" rx="2"/></svg>
+        <h3>Preview before you commit</h3>
+        <p>Encode 5–60 seconds from any point. See the speed, the clip size, a projected size for the whole file, and the same frame from source and result side by side.</p>
+      </article>
+      <article class="feature">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>
+        <h3>Explanations on hover</h3>
+        <p>Every option has an ⓘ popover that explains what it does for the chosen codec.</p>
+      </article>
+      <article class="feature">
+        <svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h12"/><circle cx="18" cy="6" r="2"/></svg>
+        <h3>Simple and advanced</h3>
+        <p>Simple mode: one-click presets, a quality slider and a resolution. Advanced mode: every setting of every encoder, curated options first.</p>
+      </article>
+      <article class="feature">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></svg>
+        <h3>Blu-ray and DVD folders</h3>
+        <p>A disc, or a copy of one, is added as one file: its main title, with its parts joined in order. Blu-ray tracks get their languages from the playlist.</p>
+      </article>
+      <article class="feature">
+        <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>
+        <h3>Tracks per file</h3>
+        <p>Keep all audio and subtitle tracks, the first, or those in chosen languages — or switch a file's tracks on and off one by one.</p>
+      </article>
+      <article class="feature full">
+        <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        <h3>Batches that keep you posted</h3>
+        <p>Drag and drop files or folders, encode up to 4 at once, follow per-file and overall progress, cancel or retry, and get a notification when it's done.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="presets" style="padding-top:0">
+  <div class="wrap">
+    <p class="eyebrow">Simple mode</p>
+    <h2>Twelve presets, one click each.</h2>
+    <p class="lead">Start from a preset, then adjust quality and resolution — or switch to advanced mode for everything.</p>
+    <div class="presets">
+      <div class="preset"><div class="top"><b>Universal MP4</b><span class="chip">Compatible</span></div><p>H.264 + AAC. Plays on every phone, TV, browser and editor.</p></div>
+      <div class="preset"><div class="top"><b>Efficient HEVC</b><span class="chip">Smaller</span></div><p>H.265 at half the size of H.264 for the same quality. 10-bit.</p></div>
+      <div class="preset"><div class="top"><b>Modern AV1</b><span class="chip">Smallest</span></div><p>SVT-AV1 + Opus: the smallest files, for archives and the web.</p></div>
+      <div class="preset"><div class="top"><b>GPU Turbo</b><span class="chip">Fastest</span></div><p>HEVC on your graphics hardware.</p></div>
+      <div class="preset"><div class="top"><b>Web WebM</b><span class="chip">Open</span></div><p>VP9 + Opus in WebM for HTML5 video, royalty-free.</p></div>
+      <div class="preset"><div class="top"><b>Remux to MKV</b><span class="chip">Instant</span></div><p>Copy every track and chapter into Matroska. No quality loss.</p></div>
+      <div class="preset"><div class="top"><b>Remux to MP4</b><span class="chip">Instant</span></div><p>Copy video and audio into MP4; only what MP4 can't hold is converted.</p></div>
+      <div class="preset"><div class="top"><b>Editing ProRes</b><span class="chip">Editing</span></div><p>ProRes 422 HQ + PCM in MOV for smooth scrubbing in any editor.</p></div>
+      <div class="preset"><div class="top"><b>Animated GIF</b><span class="chip">Shareable</span></div><p>A looping GIF at 480p and 15 fps with an optimized palette.</p></div>
+      <div class="preset"><div class="top"><b>MP3 audio</b><span class="chip">Audio</span></div><p>Extract the soundtrack as high-quality VBR MP3 (V2).</p></div>
+      <div class="preset"><div class="top"><b>Opus audio</b><span class="chip">Audio</span></div><p>Transparent audio at 128 kb/s, a fraction of MP3's size.</p></div>
+      <div class="preset"><div class="top"><b>FLAC lossless</b><span class="chip">Lossless</span></div><p>Bit-perfect audio at about half the size of WAV.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap split">
+    <div>
+      <p class="eyebrow">Hardware acceleration</p>
+      <h2>Only the GPUs that actually work.</h2>
+      <p class="lead" style="margin-bottom:28px">Each hardware encoder is test-encoded at startup, so GoEncode only offers the ones that work on your machine.</p>
+      <div class="hw">
+        <span>NVIDIA NVENC</span><span>Intel Quick Sync</span><span>AMD AMF</span><span>Apple VideoToolbox</span><span>VA‑API</span><span>Media Foundation</span><span>Android MediaCodec</span><span>V4L2 M2M</span><span>D3D12</span>
+      </div>
+    </div>
+    <div>
+      <p class="eyebrow">Bring your own ffmpeg</p>
+      <h2>It finds ffmpeg for you.</h2>
+      <p class="lead" style="margin-bottom:22px">GoEncode doesn't link ffmpeg; it looks for the programs in Preferences, next to the app, in common install folders, then on <code>PATH</code>. On Android, ffmpeg is packaged inside the APK.</p>
+      <div class="terminal">
+        <div><span class="c"># Windows</span></div>
+        <div><span class="p">&gt;</span> winget install ffmpeg</div>
+        <div><span class="c"># macOS</span></div>
+        <div><span class="p">$</span> brew install ffmpeg</div>
+        <div><span class="c"># Debian, Ubuntu</span></div>
+        <div><span class="p">$</span> sudo apt install ffmpeg</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="download" id="download">
+  <div class="wrap">
+    <p class="eyebrow">Download</p>
+    <h2>Get GoEncode</h2>
+    <p class="lead">Installers for every platform are attached to the latest release on GitHub.</p>
+    <div class="oses">
+      <a class="os" href="https://github.com/xmhrnx/goencode/releases/latest">
+        <svg viewBox="0 0 24 24"><path d="M3 5.5 10 4.5v7H3zM11 4.3 21 3v8.5H11zM3 12.5h7v7L3 18.5zM11 12.5h10V21l-10-1.4z"/></svg>
+        <b>Windows</b><small>setup.exe · msix</small>
+      </a>
+      <a class="os" href="https://github.com/xmhrnx/goencode/releases/latest">
+        <svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-4ZM14 5.3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4Z"/></svg>
+        <b>macOS</b><small>dmg</small>
+      </a>
+      <a class="os" href="https://github.com/xmhrnx/goencode/releases/latest">
+        <svg viewBox="0 0 24 24"><path d="M12 2c-2.2 0-3.5 1.8-3.5 4.3 0 1.4.3 2.4-.6 3.8-1 1.5-2.9 3.9-2.9 6.4 0 .7.2 1.3.5 1.8-.9.4-1.8 1-1.4 1.9.4.9 2.6.6 3.9 1.3 1.3.6 2.5.5 3-.4h2c.5.9 1.7 1 3 .4 1.3-.7 3.5-.4 3.9-1.3.4-.9-.5-1.5-1.4-1.9.3-.5.5-1.1.5-1.8 0-2.5-1.9-4.9-2.9-6.4-.9-1.4-.6-2.4-.6-3.8C15.5 3.8 14.2 2 12 2Zm-1.6 4c.5 0 .8.6.8 1.2 0 .3-.1.6-.3.8L10 8.4c-.3-.3-.4-.7-.4-1.2 0-.6.3-1.2.8-1.2Zm3.2 0c.5 0 .8.6.8 1.2 0 .5-.1.9-.4 1.2l-.9-.4c-.2-.2-.3-.5-.3-.8 0-.6.3-1.2.8-1.2ZM12 9c.9 0 2 .5 2 .9 0 .5-1.3 1.3-2 1.3s-2-.8-2-1.3c0-.4 1.1-.9 2-.9Z"/></svg>
+        <b>Linux</b><small>deb · rpm</small>
+      </a>
+      <a class="os" href="https://github.com/xmhrnx/goencode/releases/latest">
+        <svg viewBox="0 0 24 24"><path d="M17.5 9.2 19.3 6a.4.4 0 0 0-.7-.4L16.8 8.9A11 11 0 0 0 12 7.9c-1.7 0-3.3.4-4.8 1L5.4 5.6a.4.4 0 0 0-.7.4l1.8 3.2C3.6 10.7 1.6 13.6 1.3 17h21.4c-.3-3.4-2.3-6.3-5.2-7.8ZM7 14.2a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>
+        <b>Android</b><small>apk</small>
+      </a>
+    </div>
+    <a class="btn primary" href="https://github.com/xmhrnx/goencode/releases/latest">All downloads on GitHub</a>
+    <p class="note">On desktop you also need ffmpeg and ffprobe (see above). iOS isn't offered: it doesn't let apps run other programs. The Android build bundles an ffmpeg that includes x264 and is GPL.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><img src="img/icon.png" alt=""> GoEncode — licensed under the <a href="https://github.com/xmhrnx/goencode/blob/main/LICENSE">Apache License 2.0</a>.</div>
+    <div>Built in Go with <a href="https://github.com/xmhrnx/giode">Giode</a> · <a href="https://github.com/xmhrnx/goencode">Source on GitHub</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

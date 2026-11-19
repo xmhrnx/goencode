@@ -4,6 +4,8 @@
 
 <p align="center">Remux, encode and transcode media files with ffmpeg, on Windows, macOS, Linux and Android.</p>
 
+<p align="center"><a href="https://xmhrnx.github.io/goencode/">Website</a> · <a href="https://github.com/xmhrnx/goencode/releases/latest">Download</a></p>
+
 GoEncode is a front end for ffmpeg, written in Go with [giode](https://github.com/xmhrnx/giode).
 Add any number of files and pick one set of settings. GoEncode applies those settings to every file
 in the batch: video, audio, subtitles, chapters, metadata and output naming.
