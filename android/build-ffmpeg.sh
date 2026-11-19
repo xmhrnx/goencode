@@ -92,7 +92,9 @@ for ABI in $ABIS; do
 	)
 
 	# ffmpeg and ffprobe as position-independent executables, statically
-	# linked against everything but Android's system libraries.
+	# linked against everything but Android's system libraries. Their
+	# segments are 16 KB aligned: Google Play rejects native code that
+	# can't load on Android 15's 16 KB page devices.
 	rm -rf "build-ffmpeg-$ABI" && mkdir "build-ffmpeg-$ABI"
 	(
 		cd "build-ffmpeg-$ABI"
@@ -102,7 +104,7 @@ for ABI in $ABIS; do
 			--cc="$CC" --cxx="$CXX" --sysroot="$SYSROOT" \
 			--nm="$TOOLS/bin/llvm-nm" --ar="$TOOLS/bin/llvm-ar" --ranlib="$TOOLS/bin/llvm-ranlib" \
 			--strip="$TOOLS/bin/llvm-strip" --pkg-config=pkg-config --pkg-config-flags=--static \
-			--extra-cflags="-I$PREFIX/include -fPIE" --extra-ldflags="-L$PREFIX/lib -fPIE -pie" \
+			--extra-cflags="-I$PREFIX/include -fPIE" --extra-ldflags="-L$PREFIX/lib -fPIE -pie -Wl,-z,max-page-size=16384" \
 			--enable-pic --enable-static --disable-shared --disable-doc --disable-ffplay \
 			--disable-debug --enable-gpl --enable-version3 --enable-libx264 \
 			--enable-jni --enable-mediacodec \

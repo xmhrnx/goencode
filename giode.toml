@@ -10,13 +10,24 @@ icon = "assets/icon.png"
 splash_color = "#0A0B10"        # launch background: the dark theme's, so there's no white flash
 splash_color_light = "#F4F5FA"  # and the light theme's
 package = "."
-platforms = ["windows", "macos", "linux", "android"]   # iOS is left out: it doesn't let apps run ffmpeg
+# iOS is left out: it doesn't let apps start other programs, so GoEncode
+# can't run ffmpeg there (docs/ffmpeg.md, RELEASING.md).
+platforms = ["windows", "macos", "linux", "android"]
 publisher = "GoEncode"
 description = "Remux, encode and transcode media files with ffmpeg"
 website = "https://xmhrnx.github.io/goencode/"
 
 [android]
 min_sdk = 24
+# Google Play requires Android 16 (API 36) for new apps and updates since
+# 31 Aug 2026; the CLI's default is 35, which Play now rejects.
+target_sdk = 36
+# Play installs from the .aab; bundletool may store native libraries
+# uncompressed and leave them in the APK, where they can't be run. ffmpeg
+# must be unpacked into the native library folder (docs/ffmpeg.md), so
+# ask for that explicitly, as Gradle's useLegacyPackaging does.
+application_attributes = { extractNativeLibs = "true" }
+# POST_NOTIFICATIONS stays (the default): "GoEncode finished" is a notification.
 keep_alive = true            # keeps a batch encoding while the app is in the background
 # ffmpeg and ffprobe for each ABI, built by android/build-ffmpeg.sh, or
 # taken from a released APK by `go run ./android/fetchffmpeg` (on Windows);
@@ -27,8 +38,12 @@ libraries = ["android/ffmpeg.aar"]
 icon_foreground = "assets/android/icon-foreground.png"
 icon_background = "assets/android/icon-background.png"
 icon_monochrome = "assets/android/icon-foreground.png"
-# keystore = "release.keystore"   # created by giode keystore; signs giode build -release
+# The Google Play upload key (giode keystore creates it; *.keystore is kept
+# out of git). The release workflow writes it from ANDROID_KEYSTORE_BASE64
+# and signs with GIODE_KEYSTORE_PASS; see RELEASING.md.
+keystore = "release.keystore"
 
+# Not built (see app.platforms); kept for the simulator notice.
 [ios]
 min_os = 15
 # profile = "App.mobileprovision" # for device builds; giode run ios-sim needs none
@@ -48,6 +63,26 @@ min_os = 11
 
 [macos.plist]
 LSApplicationCategoryType = "public.app-category.video"
+ITSAppUsesNonExemptEncryption = false  # GoEncode uses no encryption of its own
+# Encodes are written next to their sources, often in these folders; macOS
+# asks before the app (and the ffmpeg it starts) may use them.
+NSDocumentsFolderUsageDescription = "GoEncode reads the media files you add from Documents and saves the encoded files next to them."
+NSDesktopFolderUsageDescription = "GoEncode reads the media files you add from the Desktop and saves the encoded files next to them."
+NSDownloadsFolderUsageDescription = "GoEncode reads the media files you add from Downloads and saves the encoded files next to them."
+NSRemovableVolumesUsageDescription = "GoEncode reads media files from external drives and discs and saves the encoded files next to them."
+NSNetworkVolumesUsageDescription = "GoEncode reads media files from network drives and saves the encoded files next to them."
+
+# No Mac App Store build ([macos.store] would add one to CI). The App Sandbox
+# only lets a store app run programs inside its own bundle, signed with it.
+# GoEncode runs the user's ffmpeg (Homebrew, a chosen path), which the
+# sandbox blocks, and giode can't bundle and sign helper programs; a GPL
+# ffmpeg also can't ship under the App Store's terms. Mac users get the
+# notarized .dmg from the GitHub release instead. See RELEASING.md.
+
+# Apple's privacy manifest, for any Apple store build: GoEncode collects
+# nothing and sends nothing anywhere.
+[privacy]
+tracking = false
 
 [windows]
 arch = "amd64"
@@ -58,10 +93,14 @@ arch = "amd64"
 # desktop_shortcut = true
 # license = "assets/license.txt"
 
+# Microsoft Store (giode build msix). The Store signs the package. These must
+# match Partner Center → GoEncode → Product identity once the name is reserved:
+# Package/Identity/Name, Package/Identity/Publisher and
+# Package/Properties/PublisherDisplayName.
 [windows.msix]
-# The signing certificate's subject; a certificate that signs the MSIX
-# must have this exact subject (or use the Partner Center publisher ID).
-publisher = "CN=xmhrnx"
+identity_name = "MehranZahir.GoEncode"
+publisher = "CN=B40E8F57-A7E0-40BB-8E74-5D051D0B578B"
+publisher_display_name = "Mehran Zahiroddini"
 
 [windows.signing]
 # certificate = "codesign.pfx"   # created by giode cert (testing) or bought; password in $GIODE_WINDOWS_CERT_PASS
@@ -74,6 +113,10 @@ license = "Apache-2.0"       # SPDX, for .deb, .rpm and AppStream
 # CI: .github/workflows/release.yml is generated from this section with
 # `giode ci -f`. Publishing a GitHub release builds the installers for every
 # platform above and attaches them to it.
+#
+# After `giode ci -f`, redo two edits in release.yml by hand: pin
+# `go install github.com/xmhrnx/giode-cli/cmd/giode@v0.1.35-alpha.1` (giode ci
+# writes @latest) and use `go-version-file: go.mod` (it writes go-version: stable).
 [ci]
 trigger = "release"
 test = "go vet ./... && go test -short ./..."

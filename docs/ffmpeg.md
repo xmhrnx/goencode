@@ -33,8 +33,11 @@ go run ./android/fetchffmpeg
 ```
 
 It writes `android/ffmpeg.aar` from the newest release that has an APK. `-apk` takes another APK,
-a file or a URL.
-It builds ffmpeg 7.1.1 with x264, MediaCodec and ffmpeg's built-in encoders for `arm64-v8a`,
+a file or a URL. Use it for local builds only: Google Play needs the 16 KB aligned ffmpeg that
+`build-ffmpeg.sh` makes, and an APK released before that change gives one Play rejects. The
+release workflow always runs the script.
+
+`build-ffmpeg.sh` builds ffmpeg 7.1.1 with x264, MediaCodec and ffmpeg's built-in encoders for `arm64-v8a`,
 `armeabi-v7a` and `x86_64`. The x264 build is GPL, so the APK is too. Set `ABIS` or
 `FFMPEG_VERSION` to change what it builds.
 
@@ -54,12 +57,15 @@ The script follows these steps, which you can also do by hand with your own ffmp
            └── libffprobe.so
    ```
 
-3. List the `.aar` in `giode.toml`. giode merges its `.so` files into the APK, and because the
-   manifest doesn't set `extractNativeLibs="false"`, Android unpacks them to disk on install:
+3. List the `.aar` in `giode.toml`, and set `extractNativeLibs="true"`. giode merges the `.so`
+   files into the APK, and Android unpacks them to disk on install. Without the attribute, an
+   install from Google Play (built from the `.aab`) may keep them uncompressed inside the APK,
+   where they can't be run:
 
    ```toml
    [android]
    libraries = ["android/ffmpeg.aar"]
+   application_attributes = { extractNativeLibs = "true" }
    ```
 
 At run time, `internal/ffmpeg/binary_android.go` finds the native library folder from the app's
