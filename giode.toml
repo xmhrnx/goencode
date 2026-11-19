@@ -7,11 +7,13 @@ id = "com.goencode.app"            # reverse-DNS, unique to your app; stores nev
 version = "1.0.0"                # a release tag sets it in CI; a four-part tag (v1.0.0.0) builds as 1.0.0
 build = 1                    # raise for every store upload (giode bump)
 icon = "assets/icon.png"
+splash_color = "#0A0B10"        # launch background: the dark theme's, so there's no white flash
+splash_color_light = "#F4F5FA"  # and the light theme's
 package = "."
 platforms = ["windows", "macos", "linux", "android"]   # iOS is left out: it doesn't let apps run ffmpeg
 publisher = "GoEncode"
 description = "Remux, encode and transcode media files with ffmpeg"
-website = "https://github.com/xmhrnx/goencode"
+website = "https://xmhrnx.github.io/goencode/"
 
 [android]
 min_sdk = 24
@@ -43,6 +45,9 @@ min_os = 11
 # identity = "Developer ID Application: Your Name (TEAMID)"  # signs giode build -release
 # notary_id = "you@example.com"     # notarizes, with the password in $GIODE_NOTARY_PASS
 # notary_team_id = "TEAMID"
+
+[macos.plist]
+LSApplicationCategoryType = "public.app-category.video"
 
 [windows]
 arch = "amd64"
